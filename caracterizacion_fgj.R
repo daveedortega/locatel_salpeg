@@ -80,7 +80,7 @@ labs <- victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(a
                          mes_inicio == "Noviembre" ~ "11",
                          mes_inicio == "Diciembre" ~ "12")) %>% 
   mutate(fecha = as.Date(paste0(ano_inicio,"-",mes,"-01"))) %>% ungroup(mes_inicio) %>% 
-  slice_max(order_by = incidencia,n=4)
+  slice_max(order_by = incidencia,n=3)
 
 victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inicio,mes_inicio,delito) %>% 
   summarise(incidencia = n()) %>% 
@@ -102,9 +102,9 @@ victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inici
   ggplot(aes(fecha,incidencia, color = feminicidio))+
   geom_line()+
   geom_smooth()+
-  geom_label(data = labs,aes(label = comma(incidencia)),size = 10)+
+  geom_label(data = labs,aes(label = comma(incidencia, prefix = paste0(mes_inicio," ",ano_inicio,": "))),size = 6)+
   labs(x="",y="Carpetas de Investigación Iniciada", 
-       title = "Carpetas de Investigación iniciadas por la FGJCDMX ",
+       title = "Carpetas de Investigación Mensuales iniciadas por la FGJCDMX ",
        subtitle = "Por delitos relacionados con el feminicidio entre 2019 - 2022", 
        caption = "Fuente: Datos Abiertos CDMX - Victimas en Carpetas de Investigación",
        color = "Tipo de Delito:")+
