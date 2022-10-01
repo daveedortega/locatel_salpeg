@@ -100,5 +100,9 @@ leaflet(cuadrantes_cdmx) %>%
       direction = "auto")
   )
 
+## Distribucion de Postes
+cuadrantes_cdmx$puntos_cuad %>% summary()
 
+plot(density(cuadrantes_cdmx$puntos_cuad),main = "Distribución de postes por cuadrante", sub ="Portal DatosAbiertos CDMX",
+     xlab = "x",ylab = "px")
 
