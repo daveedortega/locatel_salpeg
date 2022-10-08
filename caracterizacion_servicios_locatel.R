@@ -39,6 +39,8 @@ origen_colgraph <- locatel_16_22 %>% count(origen) %>%
         plot.subtitle = element_text(size = 20,face = "bold"),
         legend.position = "bottom")
 
+origen_colgraph
+
 # Pregunta, ¿ Cuál es el origen de Asesoría? ¿Cuál la de atención Inmediata?
 
 # Revisamos temporalidad por mes ----
@@ -111,6 +113,17 @@ densidad_fldt <- locatel_16_22 %>% count(mes_alta,ano_alta,origen) %>% mutate(me
 
 # Por qué hay un pico muy fuerte por ahí de 2020; seguramente atención a pandemia pero igual vale la pena revisar
 
+locatel_16_22 %>% filter(origen == "BOTÓN DE APOYO") %>% count(tematica_1) %>% 
+  ggplot(aes(reorder(tematica_1,n),n,fill = tematica_1))+
+  geom_col()+
+  labs(x="",y="Número de Atenciones", 
+       title = "Temática principal de las atenciones provistas a través de Botón de Apoyo por LOCATEL",
+       subtitle = "Entre 2016 - 09/2022", caption = "Fuente: Portal de Datos Abiertos: Servicios a la Población en General")+
+  geom_label(aes(label = comma(n)))+
+  theme(plot.title = element_text(size = 24,color ="#9f2441", face = "bold"),
+        plot.subtitle = element_text(size = 20,face = "bold"),
+        legend.position = "none", 
+        axis.text.x = element_text(angle = 90))
 
 
 
