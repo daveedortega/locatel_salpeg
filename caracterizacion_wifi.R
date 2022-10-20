@@ -9,7 +9,7 @@ rm(list=ls())
 dev.off()
 
 ## Cargar Bases ----
-postes_wifi <- read_csv("input/puntos_wifi_gratuito.csv") %>% clean_names()
+postes_wifi <- read_csv("input/puntos_wifi_gratuito.csv") %>% clean_names()     
 
 postes_wifi %>% summarise(sum(puntos_de_acceso))
 
@@ -27,12 +27,13 @@ postes_wifi %>% group_by(alcaldia) %>% summarise(puntos_de_acceso = sum(puntos_d
         axis.title.y = element_text(face = "bold"), 
         legend.position = "none")+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
+ggsave("./output/postes_wifi_sept28.png", width = 14)
 
 # ¿Por cuadrante? ¿Pesarlo por población?
 
 ## Cargamos Mapa e Intersecamos por cuadrante ----
 
-cuadrantes_cdmx <- read_sf("~/Desktop/Mapas/cuadrantes/cuadrantes.shp")
+cuadrantes_cdmx <- read_sf("/Users/dortega/Downloads/cuadrantes/cuadrantes.shp")
 cuadrantes_cdmx <- cuadrantes_cdmx %>% st_make_valid()
 
 dummy <- cuadrantes_cdmx %>% st_is_valid()==F 
@@ -49,10 +50,16 @@ sum(dummy)
 # INTERSECTS != INTERSECTION, returns vector with summary of points over each polygon, lengths counts elements per line
 
 cuadrantes_cdmx$puntos_cuad <-  lengths(st_intersects(cuadrantes_cdmx$geometry,postes_wifi$geometry))
-
+mean(cuadrantes_cdmx$puntos_cuad)
 #
 cuadrantes_cdmx %>% ggplot(aes(fill = puntos_cuad))+
-  geom_sf()
+  geom_sf(color = "white", size = 0.01)+
+  labs(title = str_wrap("Puntos por cuadrante de seguridad de acuerdo a la estrategia de seguridad de la CDMX", width = 45),
+       subtitle = "A Septiembre de 2022", fill  = str_wrap("Densidad de Puntos por Cuadrante",width = 20))+
+  theme(plot.title = element_text(face = "bold", size = 14, color = "#BC955C"),
+        plot.subtitle = element_text(face = "bold",size = 12, color = "#9F2441"))+
+  annotate("label",y=19.5979411421,x=-99.2401175866 ,label = "Promedio: 26.8") 
+ggsave("./output/puntos_wifi_cuadrantes.png")
 
 # Recordamos como hacer leaflet ----
 

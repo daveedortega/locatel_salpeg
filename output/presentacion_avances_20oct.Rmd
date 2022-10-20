@@ -1,0 +1,204 @@
+---
+title: "Avances Tesis 20 Oct"
+author: "David Ortega"
+date: "2022-10-04"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Tareas Previas
+
+- Lectura de Tesis Anteriores
+- Planteamiento y delimitación de Pregunta de Investigación
+- Parsing de Datos para buscar contestar a la pregunta
+
+## Tesis Leídas:
+
+- De todas las tesis, el trabajo que más se asemeja al que me gustaría realizar personalmente es la de Joaquín Barrutia.
+- Me agrada que la extensión sea de 30 páginas con la estructura:
+* Introducción
+* Contexto (Panorama Actual)
+* Explicación del Análisis a realizar
+* Presentación de los Datos
+* Resultados
+* Concusiones y Discusión
+
+Objetivo General:
+
+No he podido articular mi pregunta, en las siguientes diapositivas se explicará un poco por qué, pero el objetivo en general es evaluar el efecto de políticas públicas de este gobierno y anteriores en términos de seguridad. 
+
+* **Scope**: CDMX 
+* *VI*: Inversión en Infraestructura: *botones de auxilio* e *inversión en movilidad*. 
+* *VD*: *Atenciones de emergencia* / *Accidentes viales* / *Crimen*
+* *Temporalidad*: 2016 - actual.
+
+## Datos: 
+
+Bases de Datos
+
+* Atenciones Generales: LOCATEL
+* Incidentes Viales: C5
+* Colonias CDMX: IECDMX
+* Puntos WiFi: ADIP
+* Víctimas en Carpetas de Investigación: FGJ
+* Cuadrantes de Policías: FGJ
+
+## Teoría:
+
+Dos artículos fundamentales para sustentar la teoría:
+
+- Hot spots in a high crime environment: An experimental evaluation in Medellín. (2019) Collazos, D. Et al.
+
+Más policía y efectos en zonas de crimen. 
+
+- Understanding and countering criminal governance. (2022) Blattman, C. Et al. 
+
+Provisión de servicios públicos y su efecto en competencia criminal.
+
+- The deterrent effect of surveilance cameras on crime. (2021) Gómez, S. Mejía, D. Tobón, S. 
+
+Provisión de cámaras y deterrance en grids cercanas a las cámaras. 
+
+## Datos: Víctimas en Carpetas de Investigación - FGJ CDMX
+
+- Los datos de vícimas en carpetas de investigación son muy buenos:
+- Se actualizan mensualmente.
+- Están georeferenciados.
+- Comprenden desde **Enero de 2019 hasta Septiembre, se actualiza a mes muerto**.
+- Me gustaría poder mapear algún delito que tenga que ver con Robo, ya que el parque delictivo de Robo en todas sus modalidades es muy grande por lo que siento que puede ser una potencial área de investigación interesante y completa.
+
+## 10 delitos más perseguidos
+
+```{r echo=FALSE, message=FALSE}
+## Cargar Bases ----
+pacman::p_load(tidyverse,sf,janitor,scales)
+setwd("/Users/dortega/Documents/Tesis/servicios")
+victimas_fgj <- read_csv("input/victimas_completa_junio_2022.csv") %>% clean_names()
+
+## Delitos ----
+victimas_fgj %>% count(delito) %>% as.data.frame() %>% arrange(desc(n)) %>% slice_max(n=10, order_by = n) %>% 
+  mutate(n = comma(n))
+```
+
+
+## Datos FGJ: Feminicidios
+
+![Ejemplo de Gráficas con datos FGJ CDMX](/Users/dortega/Documents/Tesis/servicios/output/feminicidios_1.png){width=85%}
+
+## Datos FGJ: Feminicidios
+![Ejemplo de Gráficas con datos FGJ CDMX 2](/Users/dortega/Documents/Tesis/servicios/output/grafica_feminicidios_2.png){width=95%}
+
+## Datos: Postes Wi-Fi CDMX
+
+- Base de datos en constante actualización, referenciada a nivel colonia, pero puedo conseguir nivel punto
+- Necesito platicar con Janai para identificar: 
+- historia de postes wifi 
+- principios de ampliación de la red
+- criterios para lugares de postes
+- **Lo más importante, de los 26,000 postes, sólo 11,000 se contabilizan con botón de auxilio, identificar cuáles son**.
+
+## Distribución por Alcaldías postes wifi:
+![Postes a Finales de Septiembre](/Users/dortega/Documents/Tesis/servicios/output/postes_wifi_sept28.png){width=95%}
+
+## Distribución por Cuadrantes:
+![Cuadrantes y Postes a Finales de Septiembre](/Users/dortega/Documents/Tesis/servicios/output/puntos_wifi_cuadrantes.png){width=75%}
+
+## Leaflet Cuadrantes:
+
+```{r echo = F, message=FALSE}
+setwd("/Users/dortega/Documents/Tesis/servicios")
+pacman::p_load(leaflet,htmltools,sf,tidyverse, janitor)
+postes_wifi <- read_csv("input/puntos_wifi_gratuito.csv") %>% clean_names()     
+cuadrantes_cdmx <- read_sf("/Users/dortega/Downloads/cuadrantes/cuadrantes.shp")
+cuadrantes_cdmx <- cuadrantes_cdmx %>% st_make_valid()
+
+dummy <- cuadrantes_cdmx %>% st_is_valid()==F 
+sum(dummy)
+
+
+# Latitud Longitud a Geometría Puntos
+postes_wifi <- st_as_sf(postes_wifi,coords = c("longitud", "latitud"), 
+         crs = 4326)
+
+dummy = postes_wifi %>% st_is_valid()==F 
+
+# INTERSECTS != INTERSECTION, returns vector with summary of points over each polygon, lengths counts elements per line
+
+cuadrantes_cdmx$puntos_cuad <-  lengths(st_intersects(cuadrantes_cdmx$geometry,postes_wifi$geometry))
+
+# 10 Bins
+bins <- cuadrantes_cdmx$puntos_cuad %>% quantile(probs = seq(0,1,0.1)) %>% as.data.frame() %>% rename(bins = ".")
+bins <- bins$bins
+bins<- c(bins,Inf)
+
+# less bins, lower bounds
+
+bins <- c(15,25,35,50,Inf)
+
+# Damos dos valores entre los cuales hará cortes con el número de bins generrado previamente sobre el domuni dado
+pal <- colorNumeric(c("#ddc9a3", "#9f2441"),domain = NULL)
+pal <- colorNumeric(c("Blues"),domain = cuadrantes_cdmx$puntos_cuad)
+# labs
+
+labs <- sprintf(
+  "<strong>Puntos en %s %s</strong>: %d ",
+  cuadrantes_cdmx$sector, cuadrantes_cdmx$no_cdrn, cuadrantes_cdmx$puntos_cuad
+) %>% lapply(htmltools::HTML)
+
+
+leaflet(cuadrantes_cdmx) %>% 
+  addTiles() %>% 
+  addPolygons(
+    fillColor = ~pal(puntos_cuad),
+    weight = 0.5,
+    opacity = 1,
+    color = "black",
+    dashArray = "1",
+    fillOpacity = 0.7,
+    highlightOptions = highlightOptions(
+      weight = 2,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE),
+    label = labs,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")
+  )
+```
+## Servicios a la Población en General: Locatel
+- Base de datos que se actualiza semanalmente. 
+- Contiene registros desde **noviembre de 2016**
+- Contiene temáticas de atención, sexo, hora de atención, edad, escolaridad, ocupación. 
+- En origen de atención se identifican las atenciones brindadas a través de Botones de Auxilio
+- Se georreferencia a nivel colonia. 
+
+## Origen de las Atenciones:
+![Primer Problema](/Users/dortega/Documents/Tesis/servicios/output/atenciones_locatel.png){width=100%}
+
+## Tiempo - Origen de las Atenciones:
+
+![](/Users/dortega/Documents/Tesis/servicios/output/atenciones_sdt_origen.png){width=100%}
+
+## Tiempo - Origen de las Atenciones 2: 
+
+![](/Users/dortega/Documents/Tesis/servicios/output/atenciones_sdts_origen.png){width=100%}
+
+
+## Tema - Origen de Botón de las Atenciones: 
+
+![](/Users/dortega/Documents/Tesis/servicios/output/atencion_tema_boton_locatel.png){width=100%}
+
+
+
+
+
+
+
+
+

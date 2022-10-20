@@ -14,7 +14,7 @@ victimas_fgj <- read_csv("input/victimas_completa_junio_2022.csv") %>% clean_nam
 victimas_fgj %>% glimpse()
 
 ## Delitos ----
-victimas_fgj %>% count(delito) %>% as.data.frame()
+victimas_fgj %>% count(delito) %>% as.data.frame() %>% arrange(desc(n)) %>% slice_max(n=5, order_by = n)
 
 ## Feminicidios CDMX ----
 
@@ -34,7 +34,7 @@ labs <- victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(a
                          mes_inicio == "Diciembre" ~ "12")) %>% 
   mutate(fecha = as.Date(paste0(ano_inicio,"-",mes,"-01"))) %>% group_by(delito) %>% slice_max(order_by = incidencia,n=5)
 
-victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inicio,mes_inicio,delito) %>% 
+graph_feminicidios_1 <- victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inicio,mes_inicio,delito) %>% 
   summarise(incidencia = n()) %>% 
   mutate(mes = case_when(mes_inicio == "Enero" ~ "01",
                          mes_inicio == "Febrero" ~ "02",
@@ -50,8 +50,8 @@ victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inici
                          mes_inicio == "Diciembre" ~ "12")) %>% 
   mutate(fecha = as.Date(paste0(ano_inicio,"-",mes,"-01"))) %>% 
   ggplot(aes(fecha,incidencia,fill = delito))+
-  geom_col(color = "black")+
-  geom_label(data = labs,aes(label = comma(incidencia)),size = 12)+
+  geom_col(color = "black", size = 0.5)+
+  geom_label(data = labs,aes(label = comma(incidencia)),size = 8)+
   labs(x="",y="Carpetas de Investigación Iniciadas",title = "Carpetas de Investigación iniciadas por la FGJCDMX entre 2019 - 2022",
        subtitle = "Por delitos relacionados con el feminicidio", 
        caption = "Fuente: Datos Abiertos CDMX - Victimas en Carpetas de Investigación")+
@@ -59,9 +59,10 @@ victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inici
         plot.subtitle = element_text(size = 20,face = "bold"),
         legend.position = "bottom")+
   facet_wrap(~delito,scales = "free_y")
-  
 
-## Grafica Bonita Feminicidios vs - Tentativa de Feminicidio
+ggsave("./output/feminicidios_1.png",width = 12,height = 9)
+
+## Grafica Bonita Feminicidios vs - Tentativa de Feminicidio ----
 
 labs <- victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inicio,mes_inicio,delito) %>% 
   summarise(incidencia = n()) %>% 
@@ -114,7 +115,7 @@ victimas_fgj %>% filter(str_detect(delito,"FEMINICIDIO")) %>% group_by(ano_inici
         legend.text = element_text(size = 12,face = "bold"),
         legend.title = element_text(size = 16,face = "bold"))+
         scale_color_manual(values = c("#9f2441","#BC955C"))
-
+ggsave("./output/grafica_feminicidios_2.png",width = 16,height = 9)
 
 
 
