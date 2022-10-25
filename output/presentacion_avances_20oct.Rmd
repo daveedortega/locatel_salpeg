@@ -46,21 +46,21 @@ Bases de Datos
 * Víctimas en Carpetas de Investigación: FGJ
 * Cuadrantes de Policías: FGJ
 
-## Teoría:
+<!-- ## Teoría: -->
 
-Dos artículos fundamentales para sustentar la teoría:
+<!-- <!-- Artículos fundamentales para sustentar la teoría: --> -->
 
-- Hot spots in a high crime environment: An experimental evaluation in Medellín. (2019) Collazos, D. Et al.
+<!-- - Hot spots in a high crime environment: An experimental evaluation in Medellín. (2019) Collazos, D. Et al. -->
 
-Más policía y efectos en zonas de crimen. 
+<!-- Más policía y efectos en zonas de crimen.  -->
 
-- Understanding and countering criminal governance. (2022) Blattman, C. Et al. 
+<!-- - Understanding and countering criminal governance. (2022) Blattman, C. Et al.  -->
 
-Provisión de servicios públicos y su efecto en competencia criminal.
+<!-- Provisión de servicios públicos y su efecto en competencia criminal. -->
 
-- The deterrent effect of surveilance cameras on crime. (2021) Gómez, S. Mejía, D. Tobón, S. 
+<!-- - The deterrent effect of surveilance cameras on crime. (2021) Gómez, S. Mejía, D. Tobón, S.  -->
 
-Provisión de cámaras y deterrance en grids cercanas a las cámaras. 
+<!-- Provisión de cámaras y deterrance en grids cercanas a las cámaras.  -->
 
 ## Datos: Víctimas en Carpetas de Investigación - FGJ CDMX
 
