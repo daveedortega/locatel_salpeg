@@ -115,28 +115,65 @@ inviales_18_22 %>% count(incidente_c4, tipo_entrada) %>% filter(tipo_entrada %in
   scale_x_discrete(labels = function(x) str_wrap(x, width = 8))+
   facet_wrap(~tipo_entrada)
 
+# Fill año 
+inviales_18_22 %>% mutate(ano = format(fecha_creacion,format = "%Y")) %>%
+count(ano,incidente_c4, tipo_entrada) %>% filter(tipo_entrada %in% c("BOTÓN DE AUXILIO", "RADIO")) %>% 
+  ggplot(aes(reorder(incidente_c4,n),n,fill = ano))+
+  geom_col(color = "black")+
+  geom_label(aes(label = comma(n)),position = "stack")+
+  labs(x="", y="Incidentes", title = "Incidentes Viales Reportados al C5", 
+       subtitle = "Por tipo de Incidente de reporte en la CDMX, entre 2014 - 2022/07",
+       caption = "Fuente: Portal de Datos Abiertos CDMX: Incidentes Viales C5")+
+  theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
+        plot.subtitle = element_text(size = 18, face = "bold"),
+        legend.position = "bottom")+
+  scale_y_sqrt()+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 8))+
+  facet_wrap(~tipo_entrada)
+
 # Heatmap de puntos
 # Quitamos los NAs
 inviales_18_22p <- inviales_18_22 %>% na.omit()
 
 inviales_18_22p <- inviales_18_22p %>% st_as_sf(coords = c("longitud", "latitud"), 
                             crs = 4326)
-
+tic <- Sys.time()
 inviales_18_22p %>% ggplot(aes())+
   geom_sf()
+toc <- Sys.time()
+print(toc-tic)
+# Toma un putero de tiempo
 
+## Leemos mapa e intersectamos por año los puntos ----
 
+colonias_cdmx <- read_sf("~/Desktop/Mapas/Col_CDMX_2019/Col_CDMX_2019.shp")
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(inviales_18_22p))
+colonias_cdmx <- colonias_cdmx %>% st_make_valid()
+colonias_cdmx %>% st_is_valid()
 
+# Usar ST_INTERSECTS, NOO USAR ST_INTERSECTION
+# Regresa una cosa que no sé qué es, la necesito en vector, para eso usamos lenghts
 
+incidentes_totales <- lengths(st_intersects(colonias_cdmx, inviales_18_22p))
+colonias_cdmx <- colonias_cdmx %>% cbind(incidentes_totales)
 
+# Incidentes por año
+inviales_18_22p <- inviales_18_22p %>% mutate(ano = format(fecha_creacion,format = "%Y"))
 
+incidentes_2014 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano<=2014)))
+incidentes_2015 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2015)))
+incidentes_2016 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2016)))
+incidentes_2017 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2017)))
+incidentes_2018 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2018)))
+incidentes_2019 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2019)))
+incidentes_2020 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2020)))
+incidentes_2021 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2021)))
+incidentes_2022 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano==2022)))
 
-
-
-
-
-
-
+colonias_cdmx <- colonias_cdmx %>% cbind(incidentes_2014,incidentes_2015,incidentes_2016,incidentes_2017,
+                                         incidentes_2018,incidentes_2019,incidentes_2020,incidentes_2021,incidentes_2022)
+# No lo vamos a plotear en R, mejor QGIS
+st_write(colonias_cdmx,"./output/mapa_inviales/inviales_xano.shp")
 
 
 
