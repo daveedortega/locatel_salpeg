@@ -131,7 +131,7 @@ count(ano,incidente_c4, tipo_entrada) %>% filter(tipo_entrada %in% c("BOTÓN DE 
   scale_x_discrete(labels = function(x) str_wrap(x, width = 8))+
   facet_wrap(~tipo_entrada)
 
-# Heatmap de puntos
+# Heatmap de puntos ----
 # Quitamos los NAs
 inviales_18_22p <- inviales_18_22 %>% na.omit()
 
@@ -142,7 +142,7 @@ inviales_18_22p %>% ggplot(aes())+
   geom_sf()
 toc <- Sys.time()
 print(toc-tic)
-# Toma un putero de tiempo
+# Toma como un min
 
 ## Leemos mapa e intersectamos por año los puntos ----
 
@@ -157,7 +157,7 @@ colonias_cdmx %>% st_is_valid()
 incidentes_totales <- lengths(st_intersects(colonias_cdmx, inviales_18_22p))
 colonias_cdmx <- colonias_cdmx %>% cbind(incidentes_totales)
 
-# Incidentes por año
+# Incidentes por año ----
 inviales_18_22p <- inviales_18_22p %>% mutate(ano = format(fecha_creacion,format = "%Y"))
 
 incidentes_2014 <- lengths(st_intersects(colonias_cdmx, inviales_18_22p %>% filter(ano<=2014)))
@@ -175,7 +175,33 @@ colonias_cdmx <- colonias_cdmx %>% cbind(incidentes_2014,incidentes_2015,inciden
 # No lo vamos a plotear en R, mejor QGIS
 st_write(colonias_cdmx,"./output/mapa_inviales/inviales_xano.shp")
 
+## Seleccionamos colonias por las que cruza el cablebus ----
+# Importamos kmls de STE
+cablebus_1 <- read_sf("input/Cablebús Línea 1.kml")
+cablebus_2 <- read_sf("input/Cablebús Linea 2.kml")
+trole_elevado <- read_sf("input/Trolebús Elevado.kml")
 
+# Revisamos si el CRS es correcto
+st_crs(cablebus_1) == st_crs(colonias_cdmx)
+st_crs(cablebus_2) == st_crs(colonias_cdmx)
+st_crs(trole_elevado) == st_crs(colonias_cdmx)
 
+# Intersectamos, si es mayor a cero entonces sí jala
+cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
+cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
+tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
 
+# Pegamos
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_e)
 
+## Agregamos afluencia ----
+
+# Cómo lo hacemos? Por mes supongo, o semana?
+
+afluencia_cb <- read_csv("input/afluencia_desglosada_cb_08_2022.csv")
+afluencia_cb %>% glimpse() # No lo tengo desglosado por estación de ingreso, ¿pedir?
+afluencia_cb %>% count(linea)
+afluencia_tb <- read_csv("input/afluencia_desglosada_trolebus_08_2022.csv")
+afluencia_tb %>% glimpse()
+afluencia_tb %>% count(linea)
+afluencia_tb %>% filter(linea == "Linea 10") %>% View() # LLínea 10 es TB
