@@ -1,0 +1,209 @@
+####################################################.
+## Código Final para generar bdd de Tesis
+## DAOA - 10/10/22
+####################################################.
+
+## Preparar Espacio ----
+pacman::p_load(tidyverse,sf,janitor,scales)
+rm(list=ls())
+dev.off()
+
+## Cargar Bases ----
+# Incidentes Viales
+inviales_15 <- read_csv("input/inViales_2014_2015.csv")
+inviales_18 <- read_csv("input/inViales_2016_2018.csv")
+inviales_21 <- read_csv("input/inViales_2019_2021.csv")
+inviales_22 <- read_csv("input/inViales_2022_jul.csv") # Actualizar pronto
+# Juntar Incidentes Viales en una sola BdD
+inviales_18_22 <- rbind(inviales_15,inviales_18,inviales_21,inviales_22)
+rm(list=setdiff(ls(), "inviales_18_22")) # Eliminamos cosas que no necesitamos
+
+# Incidencia Delictiva - Víctimas en Carpetas de Investigación FGJCDMX
+incidencia <- read_csv("input/victimas_completa_junio_2022.csv")
+
+# Afluencia STE y L12
+afluencia_cb <- read_csv("input/afluencia_desglosada_cb_08_2022.csv")
+afluencia_tb <- read_csv("input/afluencia_desglosada_trolebus_08_2022.csv")
+afluencia_tb %>% filter(linea == "Linea 10") # Línea 10 es TB Elevado, revisar por base más reciente porque ahora está vacía
+afluencia_metro <-  read_csv("input/afluenciastc_desglosado_08_2022.csv")
+afluencia_l12 <- afluencia_metro %>% filter(linea == "Linea 12") 
+rm(afluencia_metro) # Quitamos lo del metro
+## Cargar Mapas ----
+colonias_cdmx <- read_sf("~/Desktop/Mapas/Col_CDMX_2019/Col_CDMX_2019.shp")
+colonias_cdmx <- colonias_cdmx %>% st_make_valid() # Hacemos válidos los polígonos inválidos
+cablebus_1 <- read_sf("input/Cablebús Línea 1.kml")
+cablebus_2 <- read_sf("input/Cablebús Linea 2.kml")
+trole_elevado <- read_sf("input/Trolebús Elevado.kml")
+metro_mapa <- read_sf("~/Desktop/Mapas/stcmetro_shp/STC_Metro_lineas_utm14n.shp")
+l12 <- metro_mapa %>% filter(LINEA=="12")
+intersecciones_seguras <- read_sf("input/intersecciones_seguras/intersecciones_seguras.shp")
+
+# Intersectamos Vialidades con mapa de colonias para saber cuáles intersectan ----
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa a mismo CRS de otros
+
+cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
+cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
+tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
+l12 <- st_transform(l12,st_crs(colonias_cdmx))
+l_12 <- lengths(st_intersects(colonias_cdmx,l12))
+intersecciones_seguras <- st_transform(intersecciones_seguras,st_crs(colonias_cdmx))
+int_s <- lengths(st_intersects(colonias_cdmx,intersecciones_seguras))
+
+# Homologamos a 0,1, i.e., presencia? O que sea intensidad del tratamiento?
+
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_e,int_s) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
+  mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% mutate(int_s = ifelse(int_s>0,1,0)) %>% 
+  mutate(l_12 = ifelse(l_12>0,1,0))
+
+rm(l_12,cb_1,cb_2,tr_e,int_s) # Eliminamos lo que no necesitamos
+
+# Agrupamos incidentes viales por mes ----
+
+inviales_18_22 %>% glimpse()
+# Tomamos fecha de creación, no tomamos alcaldia porque lo vamos a hacer por georeferencia 
+inviales_18_22_recortada <- inviales_18_22 %>% mutate(ano_mes = format(fecha_creacion,format = "%Y-%m")) %>% 
+  select(ano_mes,tipo_incidente_c4,incidente_c4,latitud,longitud,tipo_entrada)
+
+# Revisamos, debremos de separar por tipo de incidente?  me imagino que sí
+inviales_18_22_recortada %>% count(incidente_c4,tipo_incidente_c4) %>% 
+  ggplot(aes(reorder(tipo_incidente_c4,n),n,group = incidente_c4, fill = incidente_c4))+
+  geom_col(color = "black", position = "stack")+
+  coord_flip()+
+  labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
+       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Julio 2022", fill = "Tipo de Incidente", 
+       caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
+  theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
+        plot.subtitle = element_text(size = 18, face = "bold"),
+        legend.position = "bottom")+
+  scale_y_sqrt()
+# Invertimos relación
+inviales_18_22_recortada %>% count(incidente_c4,tipo_incidente_c4) %>% 
+  ggplot(aes(reorder(incidente_c4,n),n,group = tipo_incidente_c4, fill = tipo_incidente_c4))+
+  geom_col(color = "black", position = "stack")+
+  coord_flip()+
+  labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
+       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Julio 2022", fill = "Tipo de Incidente", 
+       caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
+  theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
+        plot.subtitle = element_text(size = 18, face = "bold"),
+        legend.position = "bottom")+
+  scale_y_sqrt()
+# Apagar
+dev.off()
+
+# Seccionamos por tipo de accidente, Atropellados, Choques con y sin Lesionados, Motociclista, Ciclissta y así 
+# Pensar si reclasifico por motociclista, ciclista, persona atropellada, etc.
+
+# Primero convertimos en punto geográffico para que luego no haya problemas
+
+inviales_18_22_recortada <- inviales_18_22_recortada %>% na.omit() %>% # No acepta cosas sin valores, los quitamos
+  st_as_sf(coords = c("longitud", "latitud"),crs = 4326)
+
+# Lista con 17 tipos de Incidentes Viales -----
+# Lista de 17 DFs
+incidentes_separados<- inviales_18_22_recortada %>% group_by(incidente_c4) %>% group_split()
+accidente_auto <- incidentes_separados[1] %>% as.data.frame()
+atropellado <- incidentes_separados[2] %>% as.data.frame()
+choque_cl <- incidentes_separados[3] %>% as.data.frame()
+choque_cp <- incidentes_separados[4] %>% as.data.frame()
+choque_sl <- incidentes_separados[5] %>% as.data.frame()
+ciclista <- incidentes_separados[6] %>% as.data.frame()
+ferroviario <- incidentes_separados[7] %>% as.data.frame()
+incidente_transito <- incidentes_separados[8] %>% as.data.frame() 
+monopatin <- incidentes_separados[9] %>% as.data.frame()
+motos <- incidentes_separados[10] %>% as.data.frame()
+otros <- incidentes_separados[11] %>% as.data.frame()
+persona_atrapada <- incidentes_separados[12] %>% as.data.frame()
+persona_atropellada <- incidentes_separados[13] %>% as.data.frame() # pocos registros, tiene q ver con sismo en tipo de incidente
+vehiculo_atrapado <- incidentes_separados[14] %>% as.data.frame()
+vehiculo_varado <- incidentes_separados[15] %>% as.data.frame()
+vehiculo_desbarrancado <- incidentes_separados[16] %>% as.data.frame()
+volcadura <- incidentes_separados[17] %>% as.data.frame()
+rm(incidentes_separados) # Clear unused stuff
+# Convertimos cada una de las 17 listas en una lista por mes -----
+accidente_auto_fechas <- accidente_auto %>% group_by(ano_mes) %>% group_split() 
+# PFF, son 103 dfs, pero creo que está bien, lo que luego voy a necesitar
+# va a ser iterar sobre las listas particulares
+atropellado_fechas <- atropellado %>% group_by(ano_mes) %>% group_split()
+choque_cl_fechas <- choque_cl %>% group_by(ano_mes) %>% group_split()
+choque_cp_fechas <- choque_cp %>% group_by(ano_mes) %>% group_split()
+choque_sl_fechas <- choque_sl %>% group_by(ano_mes) %>% group_split()
+ciclista_fechas <- ciclista %>% group_by(ano_mes) %>% group_split()
+ferroviario_fechas <- ferroviario %>% group_by(ano_mes) %>% group_split()
+incidente_transito_fechas <- incidente_transito %>% group_by(ano_mes) %>% group_split()
+monopatin_fechas <- monopatin %>% group_by(ano_mes) %>% group_split()
+motos_fechas <- motos %>% group_by(ano_mes) %>% group_split()
+otros_fechas <- otros %>% group_by(ano_mes) %>% group_split()
+persona_atrapada_fechas <- persona_atrapada %>% group_by(ano_mes) %>% group_split()
+persona_atropellada_fechas <- persona_atropellada %>% group_by(ano_mes) %>% group_split()
+vehiculo_atrapado_fechas <- vehiculo_atrapado %>% group_by(ano_mes) %>% group_split()
+vehiculo_varado_fechas <- vehiculo_varado %>% group_by(ano_mes) %>% group_split()
+vehiculo_desbarrancado_fechas <- vehiculo_desbarrancado %>% group_by(ano_mes) %>% group_split()
+volcadura_fechas <- volcadura %>% group_by(ano_mes) %>% group_split()
+rm(atropellado,choque_cl,choque_cp,choque_sl,ciclista,ferroviario,incidente_transito, monopatin,motos, 
+   otros,persona_atrapada,persona_atropellada,vehiculo_atrapado,vehiculo_varado, vehiculo_desbarrancado,volcadura)
+
+# Ahora sí, tenemos que iterar un lengths, pegar a un df como columna para tener incidentes por mes por colonia ----
+test <- data.frame(id = 1:length(colonias_cdmx$ge))# La función necesita saber cuántas tiene
+# Aplicamos función a todos
+accidente_auto_fechas_r<- iterated_intersection(accidente_auto_fechas,test,colonias_cdmx)
+atropellado_fechas_r <- iterated_intersection(atropellado_fechas,test,colonias_cdmx)
+choque_cl_fechas_r <- iterated_intersection(choque_cl_fechas,test,colonias_cdmx)
+choque_cp_fechas_r <- iterated_intersection(choque_cp_fechas,test,colonias_cdmx)
+choque_sl_fechas_r <- iterated_intersection(choque_sl_fechas,test,colonias_cdmx)
+ciclista_fechas_r <- iterated_intersection(ciclista_fechas,test,colonias_cdmx)
+ferroviario_fechas_r <- iterated_intersection(ferroviario_fechas,test,colonias_cdmx)
+incidente_transito_fechas_r <- iterated_intersection(incidente_transito_fechas,test,colonias_cdmx)
+monopatin_fechas_r <- iterated_intersection(monopatin_fechas,test,colonias_cdmx)
+motos_fechas_r <- iterated_intersection(motos_fechas,test,colonias_cdmx)
+otros_fechas_r <- iterated_intersection(otros_fechas,test,colonias_cdmx)
+persona_atrapada_fechas_r <- iterated_intersection(persona_atrapada_fechas,test,colonias_cdmx)
+persona_atropellada_fechas_r <- iterated_intersection(persona_atropellada_fechas,test,colonias_cdmx)
+vehiculo_atrapado_fechas_r <- iterated_intersection(vehiculo_atrapado_fechas,test,colonias_cdmx)
+vehiculo_varado_fechas_r <- iterated_intersection(vehiculo_varado_fechas,test,colonias_cdmx)
+vehiculo_desbarrancado_fechas_r <- iterated_intersection(vehiculo_desbarrancado_fechas,test,colonias_cdmx)
+volcadura_fechas_r <- iterated_intersection(volcadura_fechas,test,colonias_cdmx)
+# Liberamos lo que sobra
+rm(accidente_auto_fechas,atropellado_fechas,choque_cl_fechas,choque_cp_fechas, choque_sl_fechas, ciclista_fechas, 
+   ferroviario_fechas, incidente_transito_fechas, monopatin_fechas, motos_fechas, otros_fechas, persona_atrapada_fechas, 
+   vehiculo_atrapado_fechas, vehiculo_varado_fechas, vehiculo_desbarrancado_fechas, volcadura_fechas)
+# Pegamos unificado en un solo DF -----
+
+incidentes_por_fecha <- cbind(accidente_auto_fechas_r, atropellado_fechas_r, choque_cl_fechas_r, 
+                                  choque_cp_fechas_r, choque_sl_fechas_r, ciclista_fechas_r, 
+                                  ferroviario_fechas_r, incidente_transito_fechas_r, monopatin_fechas_r, 
+                                  motos_fechas_r, otros_fechas_r, persona_atrapada_fechas_r, 
+                                  persona_atropellada_fechas_r,vehiculo_atrapado_fechas_r, volcadura_fechas_r,
+                                  vehiculo_varado_fechas_r, vehiculo_desbarrancado_fechas_r)
+incidentes_por_fecha <- incidentes_por_fecha %>% select(!id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
