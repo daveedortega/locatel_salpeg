@@ -169,29 +169,84 @@ rm(accidente_auto_fechas,atropellado_fechas,choque_cl_fechas,choque_cp_fechas, c
    vehiculo_atrapado_fechas, vehiculo_varado_fechas, vehiculo_desbarrancado_fechas, volcadura_fechas)
 # Pegamos unificado en un solo DF -----
 
-incidentes_por_fecha <- cbind(accidente_auto_fechas_r, atropellado_fechas_r, choque_cl_fechas_r, 
+incidentes_cf <- cbind(colonia = colonias_cdmx$Colonia,accidente_auto_fechas_r, atropellado_fechas_r, choque_cl_fechas_r, 
                                   choque_cp_fechas_r, choque_sl_fechas_r, ciclista_fechas_r, 
                                   ferroviario_fechas_r, incidente_transito_fechas_r, monopatin_fechas_r, 
                                   motos_fechas_r, otros_fechas_r, persona_atrapada_fechas_r, 
                                   persona_atropellada_fechas_r,vehiculo_atrapado_fechas_r, volcadura_fechas_r,
                                   vehiculo_varado_fechas_r, vehiculo_desbarrancado_fechas_r)
-incidentes_por_fecha <- incidentes_por_fecha %>% select(!id)
+incidentes_cf <- incidentes_por_fecha %>% select(!id)
 
+incidentes_cf %>% dim() 
+#limpiar ----
+rm(accidente_auto_fechas_r,atropellado_fechas_r,choque_cl_fechas_r,choque_cp_fechas_r, choque_sl_fechas_r, ciclista_fechas_r, 
+   ferroviario_fechas_r, incidente_transito_fechas_r, monopatin_fechas_r, motos_fechas_r, otros_fechas_r, persona_atrapada_fechas_r, 
+   vehiculo_atrapado_fechas_r, vehiculo_varado_fechas_r, vehiculo_desbarrancado_fechas_r, volcadura_fechas_r)
 
+# Long format ----
+incidentes_lf <- incidentes_cf %>% pivot_longer(!colonia,names_to = "incidente_fecha",values_to = "incidentes")
 
+# Separar en dos fecha y accidente
+incidentes_lf <- incidentes_lf %>% separate(incidente_fecha,into = c("accidente","ano_mes"), sep = "(?<=[a-zA-Z])\\s*(?=[0-9])")
 
+# Data frame final ----
+incidentes_lf <- incidentes_lf %>% mutate(fecha = as.Date(paste0(ano_mes,"-01"))) 
 
+# Estadísticas Generales ----
 
+# Total de incidentes ----
 
+fechas_importantes <- data.frame(evento = c("Inicia Cuarentena por Covid-19", "Inicia Cablebus L1", 
+                                            "Inicia Cablebus L2", "Tragedia L12", "Inicia Trolebus Elevado"),
+                                 fecha = c(as.Date("2020-04-01"),as.Date("2021-07-11"),as.Date("2021-08-08"), 
+                                           as.Date("2021-05-03"), as.Date("2022-10-29")), 
+                                 incidentes = c(15000,11000,14000,18000,15000))
+colorcitos <- c("#C94F4B","#69C1CB","#69C1CB","#B1994E", "#2C63AC")
 
+incidentes_lf %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#9f2441")+
+  geom_smooth()+
+  labs(x="", y="Incidentes Viales", title = "Incidentes Viales Totales en CDMX", 
+       subtitle = "entre 2014 - 07/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))+
+  geom_point(data = fechas_importantes)+
+  geom_label(data = fechas_importantes, aes(label = str_wrap(evento,width = 10)),color = colorcitos)
+  
 
+## Mayores colonias con incidentes por año ----
 
+incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group_by(colonia,ano) %>% 
+  summarise(incidentes = sum(incidentes)) %>%  ungroup() %>% 
+  slice_max(order_by = incidentes,n=100) %>% 
+  ggplot(aes(reorder(colonia,incidentes),incidentes,group = ano,fill = ano))+
+  geom_col(color = "black")+
+  labs(x="", y="Incidentes Viales", title = "Colonias con Más incidentes Viales por año", fill = "Año de inicio",
+       subtitle = "entre 2014 - 07/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+  coord_flip()
+  
+# Total de Incidentes NO disminuye sustancialmente: Incidentes Viales tiene 1,737,446 entradas, 
+# La suma de las interacciones con los polígonos tiene 1,732,154, se pierden 5,000 incidentes, pero en general
+# SÍ CAEN EN LOS POLÍGONOS DE COLONIAS QUE TENEMOS
 
-
-
-
-
-
+# 10 colonias por año con más incidentes ----
+# Medio difícil de ver, luego lo arreglo
+incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group_by(colonia,ano) %>% 
+  summarise(incidentes = sum(incidentes)) %>%  ungroup() %>% group_by(ano) %>% 
+  slice_max(order_by = incidentes,n=10) %>% 
+  ggplot(aes(reorder(colonia, incidentes),incidentes, fill = ano))+
+  geom_col(color = "black")+
+  labs(x="", y="Incidentes Viales", title = "10 Colonias con Más incidentes Viales por año", fill = "Año de inicio",
+       subtitle = "entre 2014 - 07/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  facet_wrap(~ano, scales = "free")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+  coord_flip()
 
 
 
