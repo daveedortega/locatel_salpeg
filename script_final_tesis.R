@@ -13,7 +13,8 @@ dev.off()
 inviales_15 <- read_csv("input/inViales_2014_2015.csv")
 inviales_18 <- read_csv("input/inViales_2016_2018.csv")
 inviales_21 <- read_csv("input/inViales_2019_2021.csv")
-inviales_22 <- read_csv("input/inViales_2022_jul.csv") # Actualizar pronto
+inviales_22 <- read_csv("input/inViales_2022_10.csv") # Actualizada pero seguir actualizando, DICE ALCALDÍA NO DELEGACION
+inviales_22 <- inviales_22 %>% rename(delegacion_inicio=alcaldia_inicio,delegacion_cierre=alcaldia_cierre) %>% select(!colonia)
 # Juntar Incidentes Viales en una sola BdD
 inviales_18_22 <- rbind(inviales_15,inviales_18,inviales_21,inviales_22)
 rm(list=setdiff(ls(), "inviales_18_22")) # Eliminamos cosas que no necesitamos
@@ -26,7 +27,7 @@ afluencia_cb <- read_csv("input/afluencia_desglosada_cb_08_2022.csv")
 afluencia_tb <- read_csv("input/afluencia_desglosada_trolebus_08_2022.csv")
 afluencia_tb %>% filter(linea == "Linea 10") # Línea 10 es TB Elevado, revisar por base más reciente porque ahora está vacía
 afluencia_metro <-  read_csv("input/afluenciastc_desglosado_08_2022.csv")
-afluencia_l12 <- afluencia_metro %>% filter(linea == "Linea 12") 
+afluencia_l12_l1 <- afluencia_metro %>% filter(linea %in% c("Linea 12", "Linea 1"))
 rm(afluencia_metro) # Quitamos lo del metro
 ## Cargar Mapas ----
 colonias_cdmx <- read_sf("~/Desktop/Mapas/Col_CDMX_2019/Col_CDMX_2019.shp")
@@ -36,6 +37,7 @@ cablebus_2 <- read_sf("input/Cablebús Linea 2.kml")
 trole_elevado <- read_sf("input/Trolebús Elevado.kml")
 metro_mapa <- read_sf("~/Desktop/Mapas/stcmetro_shp/STC_Metro_lineas_utm14n.shp")
 l12 <- metro_mapa %>% filter(LINEA=="12")
+l1 <-  metro_mapa %>% filter(LINEA=="1")
 intersecciones_seguras <- read_sf("input/intersecciones_seguras/intersecciones_seguras.shp")
 
 # Intersectamos Vialidades con mapa de colonias para saber cuáles intersectan ----
@@ -44,6 +46,8 @@ colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa
 cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
 cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
 tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
+l1 <- st_transform(l1,st_crs(colonias_cdmx))
+l_1 <- lengths(st_intersects(colonias_cdmx,l1))
 l12 <- st_transform(l12,st_crs(colonias_cdmx))
 l_12 <- lengths(st_intersects(colonias_cdmx,l12))
 intersecciones_seguras <- st_transform(intersecciones_seguras,st_crs(colonias_cdmx))
@@ -51,11 +55,11 @@ int_s <- lengths(st_intersects(colonias_cdmx,intersecciones_seguras))
 
 # Homologamos a 0,1, i.e., presencia? O que sea intensidad del tratamiento?
 
-colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_e,int_s) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_e,int_s,l_1,l_12) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
   mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% mutate(int_s = ifelse(int_s>0,1,0)) %>% 
-  mutate(l_12 = ifelse(l_12>0,1,0))
+  mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))
 
-rm(l_12,cb_1,cb_2,tr_e,int_s) # Eliminamos lo que no necesitamos
+rm(l_1,l_12,cb_1,cb_2,tr_e,int_s) # Eliminamos lo que no necesitamos
 
 # Agrupamos incidentes viales por mes ----
 
@@ -70,7 +74,7 @@ inviales_18_22_recortada %>% count(incidente_c4,tipo_incidente_c4) %>%
   geom_col(color = "black", position = "stack")+
   coord_flip()+
   labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
-       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Julio 2022", fill = "Tipo de Incidente", 
+       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Octubre 2022", fill = "Tipo de Incidente", 
        caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
   theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
         plot.subtitle = element_text(size = 18, face = "bold"),
@@ -82,7 +86,7 @@ inviales_18_22_recortada %>% count(incidente_c4,tipo_incidente_c4) %>%
   geom_col(color = "black", position = "stack")+
   coord_flip()+
   labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
-       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Julio 2022", fill = "Tipo de Incidente", 
+       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Octubre 2022", fill = "Tipo de Incidente", 
        caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
   theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
         plot.subtitle = element_text(size = 18, face = "bold"),
@@ -120,6 +124,7 @@ vehiculo_varado <- incidentes_separados[15] %>% as.data.frame()
 vehiculo_desbarrancado <- incidentes_separados[16] %>% as.data.frame()
 volcadura <- incidentes_separados[17] %>% as.data.frame()
 rm(incidentes_separados) # Clear unused stuff
+
 # Convertimos cada una de las 17 listas en una lista por mes -----
 accidente_auto_fechas <- accidente_auto %>% group_by(ano_mes) %>% group_split() 
 # PFF, son 103 dfs, pero creo que está bien, lo que luego voy a necesitar
@@ -144,7 +149,9 @@ rm(atropellado,choque_cl,choque_cp,choque_sl,ciclista,ferroviario,incidente_tran
    otros,persona_atrapada,persona_atropellada,vehiculo_atrapado,vehiculo_varado, vehiculo_desbarrancado,volcadura)
 
 # Ahora sí, tenemos que iterar un lengths, pegar a un df como columna para tener incidentes por mes por colonia ----
-test <- data.frame(id = 1:length(colonias_cdmx$ge))# La función necesita saber cuántas tiene
+test <- data.frame(id = 1:length(colonias_cdmx$geometry))# La función necesita saber cuántas tiene
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(accidente_auto_fechas[[1]]$geometry))
+colonias_cdmx <- colonias_cdmx %>% st_make_valid()
 # Aplicamos función a todos
 accidente_auto_fechas_r<- iterated_intersection(accidente_auto_fechas,test,colonias_cdmx)
 atropellado_fechas_r <- iterated_intersection(atropellado_fechas,test,colonias_cdmx)
@@ -175,7 +182,7 @@ incidentes_cf <- cbind(colonia = colonias_cdmx$Colonia,accidente_auto_fechas_r, 
                                   motos_fechas_r, otros_fechas_r, persona_atrapada_fechas_r, 
                                   persona_atropellada_fechas_r,vehiculo_atrapado_fechas_r, volcadura_fechas_r,
                                   vehiculo_varado_fechas_r, vehiculo_desbarrancado_fechas_r)
-incidentes_cf <- incidentes_por_fecha %>% select(!id)
+incidentes_cf <- incidentes_cf %>% select(!id)
 
 incidentes_cf %>% dim() 
 #limpiar ----
@@ -188,7 +195,7 @@ incidentes_lf <- incidentes_cf %>% pivot_longer(!colonia,names_to = "incidente_f
 
 # Separar en dos fecha y accidente
 incidentes_lf <- incidentes_lf %>% separate(incidente_fecha,into = c("accidente","ano_mes"), sep = "(?<=[a-zA-Z])\\s*(?=[0-9])")
-
+incidentes_lf <- incidentes_lf %>% na.omit()
 # Data frame final ----
 incidentes_lf <- incidentes_lf %>% mutate(fecha = as.Date(paste0(ano_mes,"-01"))) 
 
@@ -208,7 +215,7 @@ incidentes_lf %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>
   geom_line(color = "#9f2441")+
   geom_smooth()+
   labs(x="", y="Incidentes Viales", title = "Incidentes Viales Totales en CDMX", 
-       subtitle = "entre 2014 - 07/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
         plot.subtitle = element_text(size = 22, face="bold"))+
   geom_point(data = fechas_importantes)+
@@ -223,15 +230,29 @@ incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group
   ggplot(aes(reorder(colonia,incidentes),incidentes,group = ano,fill = ano))+
   geom_col(color = "black")+
   labs(x="", y="Incidentes Viales", title = "Colonias con Más incidentes Viales por año", fill = "Año de inicio",
-       subtitle = "entre 2014 - 07/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
         plot.subtitle = element_text(size = 22, face="bold"))+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   coord_flip()
   
-# Total de Incidentes NO disminuye sustancialmente: Incidentes Viales tiene 1,737,446 entradas, 
+# Total de Incidentes NO disminuye sustancialmente: Incidentes Viales tiene  entradas, 
 # La suma de las interacciones con los polígonos tiene 1,732,154, se pierden 5,000 incidentes, pero en general
 # SÍ CAEN EN LOS POLÍGONOS DE COLONIAS QUE TENEMOS
+# Actualización a base de 10/22: 1,802,170 incidentes en base original, 1,796,780 en intersecciones
+
+# Incidentes más presentes:
+
+incidentes_lf %>% group_by(accidente) %>% summarise(n = sum(incidentes)) %>% 
+  ggplot(aes(reorder(accidente,n),n, fill = accidente))+
+  geom_col(color = "black")+
+  labs(x="", y="Incidentes Viales", title = "Incidentes Viales entre 2014 - 10/2022", fill = "Tipo de Incidente",
+       subtitle = "Por tipo de Incidente entre 2014 - 10/2022 Reportados al C5",
+       caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"),
+        legend.position = "bottom",
+        axis.text.x = element_blank())
 
 # 10 colonias por año con más incidentes ----
 # Medio difícil de ver, luego lo arreglo
@@ -241,20 +262,82 @@ incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group
   ggplot(aes(reorder(colonia, incidentes),incidentes, fill = ano))+
   geom_col(color = "black")+
   labs(x="", y="Incidentes Viales", title = "10 Colonias con Más incidentes Viales por año", fill = "Año de inicio",
-       subtitle = "entre 2014 - 07/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
   facet_wrap(~ano, scales = "free")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
         plot.subtitle = element_text(size = 22, face="bold"))+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   coord_flip()
 
+# Linea de tiempo por grupos en colonias tocadas por Cablebus L1-----
+
+colonias_cb1_1 <- colonias_cdmx %>% filter(cb_1>0) %>% select(Colonia) 
+colonias_cb1_1 <- colonias_cb1_1$Colonia
+
+incidentes_lf %>% filter(colonia %in% colonias_cb1_1) %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#69C1CB",size = 1)+
+  geom_smooth()+
+  labs(x="",y="Incidentes Viales", title="Incidentes Víales Totales en la Región cubierta por CableBus Línea 1",
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
+# Linea de tiempo por grupos en colonias tocadas por Cablebus L2-----
+
+colonias_cb1_2 <- colonias_cdmx %>% filter(cb_2>0) %>% select(Colonia) 
+colonias_cb1_2 <- colonias_cb1_2$Colonia
+
+incidentes_lf %>% filter(colonia %in% colonias_cb1_2) %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#69C1CB",size = 1)+
+  geom_smooth()+
+  labs(x="",y="Incidentes Viales", title="Incidentes Víales Totales en la Región cubierta por CableBus Línea 2",
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
 
 
+# Linea de tiempo por grupos en colonias tocadas por L12 -----
 
+colonias_l12 <- colonias_cdmx %>% filter(l_12>0) %>% select(Colonia) 
+colonias_l12 <- colonias_l12$Colonia
 
+incidentes_lf %>% filter(colonia %in% colonias_l12) %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#B1994E",size = 1)+
+  geom_smooth()+
+  labs(x="",y="Incidentes Viales", title="Incidentes Víales Totales en la Región cubierta por la línea 12 del Metro",
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
 
+# Linea de tiempo por grupos en colonias tocadas por L1 -----
 
+colonias_l1 <- colonias_cdmx %>% filter(l_1>0) %>% select(Colonia) 
+colonias_l1 <- colonias_l1$Colonia
 
+incidentes_lf %>% filter(colonia %in% colonias_l1) %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#D3548E",size = 1)+
+  geom_smooth()+
+  labs(x="",y="Incidentes Viales", title="Incidentes Víales Totales en la Región cubierta por la línea 1 del Metro",
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#D3548E"),
+        plot.subtitle = element_text(size = 22, face="bold"))
+
+# Linea de tiempo por grupos en colonias tocadas por  Trole Elevado-----
+
+colonias_te <- colonias_cdmx %>% filter(tr_e>0) %>% select(Colonia)  
+colonias_te <- colonias_te$Colonia
+
+incidentes_lf %>% filter(colonia %in% colonias_te) %>% group_by(fecha) %>% summarise(incidentes = sum(incidentes)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#2C63AC",size = 1)+
+  geom_smooth(color = "green")+
+  labs(x="",y="Incidentes Viales", title="Incidentes Víales Totales en la Región cubierta por el Trolebus Elevado",
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
 
 
 
