@@ -205,7 +205,7 @@ print(tik-tok) # Toma 3 mins todo el chiste
 rm(accidente_auto_fechas,atropellado_fechas,choque_cl_fechas,choque_cp_fechas, choque_sl_fechas, ciclista_fechas, 
    ferroviario_fechas, incidente_transito_fechas, monopatin_fechas, motos_fechas, otros_fechas, persona_atrapada_fechas, 
    vehiculo_atrapado_fechas, vehiculo_varado_fechas, vehiculo_desbarrancado_fechas, volcadura_fechas,tik,tok,
-   persona_atropellada_fechas_r)
+   persona_atrapada_fechas)
 
 ## Deben ser 107 columnas por cada uno, por lo que vamos a usar uno completo y luego pegar los demas ----
 a_0 <- cbind(colonia = colonias_cdmx$CVEUT,choque_cl_fechas_r)
@@ -331,10 +331,10 @@ incidentes_lf %>% group_by(fecha) %>% summarise(incidentes = sum(incidencia)) %>
 
 ## Mayores colonias con incidentes por año ----
 
-incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group_by(colonia,ano) %>% 
-  summarise(incidentes = sum(incidentes)) %>%  ungroup() %>% 
+incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group_by(CVEUT,ano) %>% 
+  summarise(incidentes = sum(incidencia)) %>%  ungroup() %>% 
   slice_max(order_by = incidentes,n=100) %>% 
-  ggplot(aes(reorder(colonia,incidentes),incidentes,group = ano,fill = ano))+
+  ggplot(aes(reorder(CVEUT,incidentes),incidentes,group = ano,fill = ano))+
   geom_col(color = "black")+
   labs(x="", y="Incidentes Viales", title = "Colonias con Más incidentes Viales por año", fill = "Año de inicio",
        subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
@@ -350,30 +350,34 @@ incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group
 
 # Incidentes más presentes:
 
-incidentes_lf %>% group_by(accidente) %>% summarise(n = sum(incidentes)) %>% 
+incidentes_lf %>% group_by(accidente) %>% summarise(n = sum(incidencia)) %>% 
   ggplot(aes(reorder(accidente,n),n, fill = accidente))+
-  geom_col(color = "black")+
+  geom_col(color = "black", size = 0.1)+
   labs(x="", y="Incidentes Viales", title = "Incidentes Viales entre 2014 - 10/2022", fill = "Tipo de Incidente",
        subtitle = "Por tipo de Incidente entre 2014 - 10/2022 Reportados al C5",
        caption = "Fuente: Portal de Datos Abiertos - CDMX")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
         plot.subtitle = element_text(size = 22, face="bold"),
-        legend.position = "bottom",
-        axis.text.x = element_blank())
+        legend.position = "none")+
+  scale_y_sqrt()+
+  coord_flip()
+
 
 # 10 colonias por año con más incidentes ----
 # Medio difícil de ver, luego lo arreglo
-incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group_by(colonia,ano) %>% 
+colonias_cdmx %>% select(CVEUT,NOMUT)
+
+incidentes_lf %>% separate(ano_mes, into = c("ano", "mes"), sep = "-") %>% group_by(NOMUT,ano) %>% 
   summarise(incidentes = sum(incidencia)) %>%  ungroup() %>% group_by(ano) %>% 
   slice_max(order_by = incidentes,n=10) %>% 
-  ggplot(aes(reorder(colonia, incidentes),incidentes, fill = ano))+
+  ggplot(aes(reorder(NOMUT, incidentes),incidentes, fill = ano))+
   geom_col(color = "black")+
   labs(x="", y="Incidentes Viales", title = "10 Colonias con Más incidentes Viales por año", fill = "Año de inicio",
        subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
   facet_wrap(~ano, scales = "free")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
-        plot.subtitle = element_text(size = 22, face="bold"))+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+        plot.subtitle = element_text(size = 22, face="bold"), 
+        legend.position = "none")+
   coord_flip()
 
 # Linea de tiempo por grupos en colonias tocadas por Cablebus L1-----
@@ -459,6 +463,27 @@ incidentes_lf %>% filter(CVEUT %in% colonias_t9) %>% group_by(fecha) %>% summari
        subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
         plot.subtitle = element_text(size = 22, face="bold"))
+
+## Linea de tiepo en colonias de control ----
+
+colonias_control <- colonias_cdmx %>% filter(cb_1 ==0, cb_2 == 0,tr_9==0, tr_e == 0, l_1 ==0, l_12 ==0)
+colonias_control <- colonias_control$CVEUT
+
+incidentes_lf %>% filter(CVEUT %in% colonias_control) %>% group_by(fecha) %>% summarise(incidentes = sum(incidencia)) %>% 
+  ggplot(aes(fecha,incidentes))+
+  geom_line(color = "#CBBB9B",size = 1)+
+  geom_smooth()+
+  labs(x="",y="Incidentes Viales", title="Incidentes Víales Totales en la Región de control",
+       subtitle = "entre 2014 - 10/2022 Reportados al C5", caption = "Fuente: Portal de Datos Abiertos - CDMX")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
+
+
+
+
+
+
+
 
 
 
