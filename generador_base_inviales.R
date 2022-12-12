@@ -1,5 +1,5 @@
 ####################################################.
-## Código Final para generar bdd de Tesis
+## Código Final para generar bdd de Incidentes Viales
 ## DAOA - 10/10/22
 ####################################################.
 
