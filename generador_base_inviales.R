@@ -73,6 +73,11 @@ colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,int_s,l_1,l_12) %>%
 
 rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9,int_s) # Eliminamos lo que no necesitamos
 
+# Escribimos para seleccionar manualmente las colonias en QGIS aquellas colonias aledañoas ----
+# st_write(colonias_cdmx, "./output/colonias_cdmx_int.shp")
+# REVISAR INTERSECCIONES CON ANTONELLA
+
+
 # Agrupamos incidentes viales por mes ----
 
 inviales_18_22 %>% glimpse()
@@ -80,33 +85,35 @@ inviales_18_22 %>% glimpse()
 inviales_18_22 <- inviales_18_22 %>% mutate(ano_mes = format(fecha_creacion,format = "%Y-%m")) %>% 
   select(ano_mes,tipo_incidente_c4,incidente_c4,latitud,longitud,tipo_entrada)
 
-# Revisamos, debremos de separar por tipo de incidente?  me imagino que sí ----
-inviales_18_22 %>% count(incidente_c4,tipo_incidente_c4) %>% 
-  ggplot(aes(reorder(tipo_incidente_c4,n),n,group = incidente_c4, fill = incidente_c4))+
-  geom_col(color = "black", position = "stack")+
-  coord_flip()+
-  labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
-       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Octubre 2022", fill = "Tipo de Incidente", 
-       caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
-  theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
-        plot.subtitle = element_text(size = 18, face = "bold"),
-        legend.position = "bottom")+
-  scale_y_sqrt()
+## Sección de Gráficos de caracterización ----
+# # Revisamos, debremos de separar por tipo de incidente?  me imagino que sí 
+# inviales_18_22 %>% count(incidente_c4,tipo_incidente_c4) %>% 
+#   ggplot(aes(reorder(tipo_incidente_c4,n),n,group = incidente_c4, fill = incidente_c4))+
+#   geom_col(color = "black", position = "stack")+
+#   coord_flip()+
+#   labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
+#        subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Octubre 2022", fill = "Tipo de Incidente", 
+#        caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
+#   theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
+#         plot.subtitle = element_text(size = 18, face = "bold"),
+#         legend.position = "bottom")+
+#   scale_y_sqrt()
+# 
+# # Invertimos relación 
 
-# Invertimos relación -----
-inviales_18_22 %>% count(incidente_c4,tipo_incidente_c4) %>% 
-  ggplot(aes(reorder(incidente_c4,n),n,group = tipo_incidente_c4, fill = tipo_incidente_c4))+
-  geom_col(color = "black", position = "stack")+
-  coord_flip()+
-  labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
-       subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Octubre 2022", fill = "Tipo de Incidente", 
-       caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
-  theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
-        plot.subtitle = element_text(size = 18, face = "bold"),
-        legend.position = "bottom")+
-  scale_y_sqrt()
-# Apagar
-dev.off()
+# inviales_18_22 %>% count(incidente_c4,tipo_incidente_c4) %>% 
+#   ggplot(aes(reorder(incidente_c4,n),n,group = tipo_incidente_c4, fill = tipo_incidente_c4))+
+#   geom_col(color = "black", position = "stack")+
+#   coord_flip()+
+#   labs(x="Incidente", y="Número de Reportes al C5", title = "Reportes al C5 por tipo de incidente",
+#        subtitle = "Por tipo de incidente en la CDMX, ENTRE 2014 - Octubre 2022", fill = "Tipo de Incidente", 
+#        caption = "Fuente: Datos Abiertos - Incidentes Viales Reportados al C5")+
+#   theme(plot.title = element_text(size = 22, face = "bold", color = "#9f2241"),
+#         plot.subtitle = element_text(size = 18, face = "bold"),
+#         legend.position = "bottom")+
+#   scale_y_sqrt()
+# # Apagar
+# dev.off()
 # Selección 
 # Seccionamos por tipo de accidente, Atropellados, Choques con y sin Lesionados, Motociclista, Ciclissta y así 
 # Pensar si reclasifico por motociclista, ciclista, persona atropellada, etc.
@@ -117,7 +124,7 @@ inviales_18_22 <- inviales_18_22 %>% na.omit() %>% # No acepta cosas sin valores
   st_as_sf(coords = c("longitud", "latitud"),crs = 4326)
 
 # Lista con 17 tipos de Incidentes Viales -----
-# Lista de 17 DFs
+# Lista de 17 DFs, utilizamos incidente_c4, este va a tener una subcategoría del tipo de incidente
 incidentes_separados<- inviales_18_22 %>% group_by(incidente_c4) %>% group_split()
 accidente_auto <- incidentes_separados[1] %>% as.data.frame()
 atropellado <- incidentes_separados[2] %>% as.data.frame()
@@ -139,6 +146,11 @@ volcadura <- incidentes_separados[17] %>% as.data.frame()
 rm(incidentes_separados) # Clear unused stuff
 
 # Convertimos cada una de las 17 listas en una lista por mes -----
+
+# El objetivo final es tener una base del tipo
+
+## || colonia || año_mes || incidente_tipo || # incidentes || cablebus || trolebus || metro_12 || metro_1 || cb_ad || tb_ad || metro_ad || 
+
 accidente_auto_fechas <- accidente_auto %>% group_by(ano_mes) %>% group_split() 
 # PFF, son 103 dfs, pero creo que está bien, lo que luego voy a necesitar
 # va a ser iterar sobre las listas particulares
@@ -160,6 +172,7 @@ vehiculo_desbarrancado_fechas <- vehiculo_desbarrancado %>% group_by(ano_mes) %>
 volcadura_fechas <- volcadura %>% group_by(ano_mes) %>% group_split()
 rm(atropellado,choque_cl,choque_cp,choque_sl,ciclista,ferroviario,incidente_transito, monopatin,motos, 
    otros,persona_atrapada,persona_atropellada,vehiculo_atrapado,vehiculo_varado, vehiculo_desbarrancado,volcadura)
+
 
 # Ahora sí, tenemos que iterar un lengths, pegar a un df como columna para tener incidentes por mes por colonia ----
 test <- data.frame(id = 1:length(colonias_cdmx$geometry))# La función necesita saber cuántas tiene
@@ -201,6 +214,7 @@ vehiculo_desbarrancado_fechas_r <- iterated_intersection(vehiculo_desbarrancado_
 volcadura_fechas_r <- iterated_intersection(volcadura_fechas,test,colonias_cdmx)
 tik <- Sys.time()
 print(tik-tok) # Toma 3 mins todo el chiste
+
 # Liberamos lo que sobra
 rm(accidente_auto_fechas,atropellado_fechas,choque_cl_fechas,choque_cp_fechas, choque_sl_fechas, ciclista_fechas, 
    ferroviario_fechas, incidente_transito_fechas, monopatin_fechas, motos_fechas, otros_fechas, persona_atrapada_fechas, 
@@ -208,12 +222,18 @@ rm(accidente_auto_fechas,atropellado_fechas,choque_cl_fechas,choque_cp_fechas, c
    persona_atrapada_fechas)
 
 ## Deben ser 107 columnas por cada uno, por lo que vamos a usar uno completo y luego pegar los demas ----
+
+# Aquí pegamos las colonias 
 a_0 <- cbind(colonia = colonias_cdmx$CVEUT,choque_cl_fechas_r)
+
+# borramos id repetido
 a_0 <- a_0 %>% select(!id)
+#
 a_0 <- a_0 %>% pivot_longer(!colonia,names_to = "incidente_fecha",values_to = "incidentes")
 # Long Format
 # Separar en dos fecha y accidente
 incidentes_wf <- a_0 %>% separate(incidente_fecha,into = c("accidente","ano_mes"), sep = "(?<=[a-zA-Z])\\s*(?=[0-9])")
+incidentes_wf %>% count(accidente)
 incidentes_wf <- incidentes_wf %>% pivot_wider(names_from = accidente,values_from = incidentes) %>% clean_names()
 
 # Realizamos el mismo procedimiento con cada una y luego sólo hacemos left_join con el df original
