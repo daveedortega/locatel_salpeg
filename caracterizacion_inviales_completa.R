@@ -105,16 +105,16 @@ accidente_auto_lesionado <- test_17_split[[3]] # 6,054 obs
 # atropellados ----
 atropellado_cadaver <- test_17_split[[4]] # 2,312 obs
 atropellado_detencion <- test_17_split[[5]] # 901 obs
-atropellado_detencion <- test_17_split[[6]] # -------- 236,739
+atropellado_lesionado <- test_17_split[[6]] # -------- 236,739 Done
 atropellado_sismo <- test_17_split[[21]] # 47 obs
 # choque con lesionados ----
-choque_cl_accidente <- test_17_split[[7]] # ---------- 431,755
+choque_cl_accidente <- test_17_split[[7]] # ---------- 431,755 Done
 choque_cl_sismo <- test_17_split[[8]] # 531 obs
 # choque con prensados ----
 choque_cp_accidente <- test_17_split[[9]] # 3,286 obs
 choque_cp_sismo <- test_17_split[[10]] # 2 observaciones 
 # choques sin lesionados ----
-choque_sl_accidente <- test_17_split[[11]] # --------- 955,391
+choque_sl_accidente <- test_17_split[[11]] # --------- 955,391 Done
 choque_sl_sismo <- test_17_split[[12]] # 540 obs
 # ciclista ----
 ciclista_accidente <- test_17_split[[13]] # 8,455 obs
@@ -126,7 +126,7 @@ incidente_transito_mitaxi <- test_17_split[[16]] # 68 obs
 # Monopatin ----
 monopatin_accidente <- test_17_split[[17]] # 77 obs
 # Motociclista ----
-cadaver_accidente_auto <- test_17_split[[18]] # ------- 96,541
+moto_accidente <- test_17_split[[18]] # ------- 96,541 Done
 # Otros ----
 otros_accidente <- test_17_split[[19]] # 2,713 obs
 # Persona atrapada_desbarrancada ----
@@ -150,6 +150,9 @@ complete_df <- dummy_df %>% left_join(colonias_cdmx,by = "CVEUT")
 # Now split by dates ----
 
 choque_sl_accidente <- choque_sl_accidente %>% group_split(ano_mes)
+choque_cl_accidente <- choque_cl_accidente %>% group_split(ano_mes)
+atropellado_lesionado <- atropellado_lesionado %>% group_split(ano_mes)
+moto_accidente <- moto_accidente %>% group_split(ano_mes)
 
 # Old code chunk to do so
 test <- data.frame(id = 1:length(colonias_cdmx$geometry))# La función necesita saber cuántas tiene
@@ -168,26 +171,55 @@ iterated_intersection <- function(x,y,z){
   }
   return(y)
 }
-tok <- Sys.time()
 
-# probamos con una -----
+
+# Creamos bases individuales -----
 
 # Intersectamos 
 choque_sl_accidente_final<- iterated_intersection(choque_sl_accidente,test,colonias_cdmx)
+choque_cl_accidente_final <- iterated_intersection(choque_cl_accidente,test,colonias_cdmx)
+atropellado_lesionado_final<- iterated_intersection(atropellado_lesionado,test,colonias_cdmx)
+moto_accidente_final <-  iterated_intersection(moto_accidente,test,colonias_cdmx)
+
 # pegamos nombres
 choque_sl_accidente_final <- cbind(CVEUT = colonias_cdmx$CVEUT,choque_sl_accidente_final) %>% select(!id)
+choque_cl_accidente_final <- cbind(CVEUT = colonias_cdmx$CVEUT,choque_cl_accidente_final) %>% select(!id)
+atropellado_lesionado_final <- cbind(CVEUT = colonias_cdmx$CVEUT,atropellado_lesionado_final) %>% select(!id)
+moto_accidente_final <- cbind(CVEUT = colonias_cdmx$CVEUT,moto_accidente_final) %>% select(!id)
+
 # pivoteamos
 choque_sl_accidente_final <- choque_sl_accidente_final %>% pivot_longer(!CVEUT,names_to = "incidente_fecha",values_to = "incidentes") 
+choque_cl_accidente_final <- choque_cl_accidente_final %>% pivot_longer(!CVEUT,names_to = "incidente_fecha",values_to = "incidentes") 
+atropellado_lesionado_final <- atropellado_lesionado_final %>% pivot_longer(!CVEUT,names_to = "incidente_fecha",values_to = "incidentes") 
+moto_accidente_final <- moto_accidente_final %>% pivot_longer(!CVEUT,names_to = "incidente_fecha",values_to = "incidentes") 
+
 # borramos list
 str_remove(choque_sl_accidente_final$incidente_fecha, "list\\(c\\(.*\\s")#Remove everything starting with list(c( and until a whitespace (\s)
 choque_sl_accidente_final$incidente_fecha <- str_remove(choque_sl_accidente_final$incidente_fecha, "list\\(c\\(.*\\s")
+choque_cl_accidente_final$incidente_fecha <- str_remove(choque_cl_accidente_final$incidente_fecha, "list\\(c\\(.*\\s")
+atropellado_lesionado_final$incidente_fecha <- str_remove(atropellado_lesionado_final$incidente_fecha, "list\\(c\\(.*\\s")
+moto_accidente_final$incidente_fecha <- str_remove(moto_accidente_final$incidente_fecha, "list\\(c\\(.*\\s")
+
 # separamos las fechas en otra columna
 choque_sl_accidente_final %>% separate(incidente_fecha,into = c("incidente", "ano_mes"), sep = "(?<=Accidente )")# Look around for separator
-choque_sl_accidente_final <- choque_sl_accidente_final %>% separate(incidente_fecha,into = c("incidente", "ano_mes"), sep = "(?<=Accidente )")
+choque_cl_accidente_final <- choque_cl_accidente_final %>% separate(incidente_fecha,into = c("incidente", "ano_mes"), sep = "(?<=Accidente )")
+atropellado_lesionado_final <- atropellado_lesionado_final %>% separate(incidente_fecha,into = c("incidente", "ano_mes"), sep = "(?<=Lesionado )")
+moto_accidente_final <- moto_accidente_final %>% separate(incidente_fecha,into = c("incidente", "ano_mes"), sep = "(?<=Accidente )")
+
 # Quitamos unused whitespace
 choque_sl_accidente_final$incidente <- choque_sl_accidente_final$incidente %>% str_squish()
+choque_cl_accidente_final$incidente <- choque_cl_accidente_final$incidente %>% str_squish()
+atropellado_lesionado_final$incidente <- atropellado_lesionado_final$incidente %>% str_squish()
+moto_accidente_final$incidente <- moto_accidente_final$incidente %>% str_squish()
+
 # Hacemos fechas fechas y ordenamos
 choque_sl_accidente_final <- choque_sl_accidente_final %>% mutate(dates_complete = as.Date(paste0(ano_mes,"-01"))) %>% 
+  select(dates_complete,CVEUT,incidente,incidencia = incidentes) 
+choque_cl_accidente_final <- choque_cl_accidente_final %>% mutate(dates_complete = as.Date(paste0(ano_mes,"-01"))) %>% 
+  select(dates_complete,CVEUT,incidente,incidencia = incidentes) 
+atropellado_lesionado_final <- atropellado_lesionado_final %>% mutate(dates_complete = as.Date(paste0(ano_mes,"-01"))) %>% 
+  select(dates_complete,CVEUT,incidente,incidencia = incidentes) 
+moto_accidente_final <- moto_accidente_final %>% mutate(dates_complete = as.Date(paste0(ano_mes,"-01"))) %>% 
   select(dates_complete,CVEUT,incidente,incidencia = incidentes) 
 
 ## Pegamos a base original -----
@@ -196,6 +228,37 @@ complete_choque_sl_accidente <- complete_df %>% left_join(choque_sl_accidente_fi
 # Mismo número de incidencias
 complete_choque_sl_accidente$incidencia %>% sum()
 choque_sl_accidente_final$incidencia %>% sum()
+
+# Inicio de proyectos ----
+# Creamos columnas para los respectivos dummies de inicios y ordenamos base
+complete_choque_sl_accidente <- complete_choque_sl_accidente %>% 
+  mutate(inicio_cb1 = ifelse(dates_complete > as.Date("2021-07-11"),1,0)) %>%
+  mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
+  mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
+  mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
+  select(dates_complete,CVEUT,NOMUT,NOMDT,incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         inicio_l9,para_l1,para_l12,geometry)
+  
 # LISTOOOO!!!!
-complete_choque_sl_accidente %>% View()
+# complete_choque_sl_accidente %>% View()
+
+
+
+# Fechas ----
+fechas_importantes <- data.frame(evento = c("Inicia Cuarentena por Covid-19", "Inicia Cablebus L1", 
+                                            "Inicia Cablebus L2", "Tragedia L12", "Inicia Trolebus Elevado", "Reabre L9 Trolebus", 
+                                            "Reparaciones L1", ),
+                                 fecha = c(as.Date("2020-04-01"),as.Date("2021-07-11"),as.Date("2021-08-08"), 
+                                           as.Date("2021-05-03"), as.Date("2022-10-29"), as.Date("2021-01-30"),as.Date("2022-07-11")), 
+                                 incidentes = c(15000,11000,14000,18000,15000,15000,10000))
+
+
+
+
+
+
+
+
 

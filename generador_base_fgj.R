@@ -45,6 +45,13 @@ carpetas_completa %>% count(categoria_delito) %>% ggplot(aes(reorder(categoria_d
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   scale_y_sqrt()
 
+# Vemos qué es Delito de Bajo Impacto
+
+carpetas_completa %>% filter(categoria_delito == "DELITO DE BAJO IMPACTO") %>% count(delito,sort = T) %>% 
+  ggplot(aes(reorder(delito,n),n, fill = delito))+
+  geom_col()+
+  geom_label(aes(label = comma(n)))+
+  theme(legend.position = "none")
 
 ## Selección de Delitos y Variables ----
 carpetas_completa %>% glimpse()
@@ -60,7 +67,7 @@ puntos_carpetas %>% count(delito) %>% View()
 # Por Categorías ----
 puntos_carpetas %>% count(categoria_delito)
 #Todo parece interesante, sólo quitamows hechos no delictivos, 61,929 observaciones
-puntos_carpetas %>%  filter(categoria_delito != "HECHO NO DELICTIVO") %>% count(delito) %>% filter(!delito %in% todos) %>% View()
+carpetas_completa %>%  filter(categoria_delito != "HECHO NO DELICTIVO") %>% count(delito) %>% filter(!delito %in% todos) %>% View()
 # 322 categorías, tenemos que quitar un montón 
 # total
 robos <- c("ROBO DE OBJETOS", 
@@ -192,7 +199,8 @@ delitos_sexuales <- c("VIOLACION EQUIPARADA",
                "VIOLACION TUMULTUARIA EQUIPARADA POR CONOCIDO", 
                "ACOSO SEXUAL AGRAVADO EN CONTRA DE MENORES",
                "VIOLACION EQUIPARADA Y ROBO DE VEHICULO", 
-               "VIOLACION Y ROBO DE VEHICULO")
+               "VIOLACION Y ROBO DE VEHICULO",
+               "CONTRA LA INTIMIDAD SEXUAL")
 
 plagios <- c("SUSTRACCION DE MENORES",
                "PRIVACION DE LA LIBERTAD PERSONAL", 
@@ -204,7 +212,9 @@ plagios <- c("SUSTRACCION DE MENORES",
                "PRIV. ILEGAL DE LA LIB. Y ROBO DE VEHICULO", 
                "ROBO DE INFANTE", 
                "TRAFICO DE INFANTES",
-               "SECUESTRO")
+             "DESAPARICION FORZADA DE PERSONAS",
+             "RETENCIÓN DE MENORES",
+             "SECUESTRO")
 
 lesiones <- c("LESIONES INTENCIONALES POR GOLPES", 
                "LESIONES CULPOSAS POR TRANSITO VEHICULAR EN COLISION", 
@@ -242,8 +252,7 @@ asesinatos <- c("TENTATIVA DE HOMICIDIO",
                "FEMINICIDIO", 
                "FEMINICIDIO POR ARMA BLANCA", 
                "FEMINICIDIO POR DISPARO DE ARMA DE FUEGO", 
-               "FEMINICIDIO POR GOLPES",
-               "DESAPARICION FORZADA DE PERSONAS")
+               "FEMINICIDIO POR GOLPES")
 
 danio <- c("DAÑO EN PROPIEDAD AJENA CULPOSA POR TRÁNSITO VEHICULAR A AUTOMOVIL", 
            "DAÑO EN PROPIEDAD AJENA INTENCIONAL", 
@@ -255,7 +264,11 @@ danio <- c("DAÑO EN PROPIEDAD AJENA CULPOSA POR TRÁNSITO VEHICULAR A AUTOMOVIL
            "DAÑO EN PROPIEDAD AJENA INTENCIONAL A NEGOCIO", 
            "DAÑO EN PROPIEDAD AJENA INTENCIONAL A VIAS DE COMUNICACION")
 
+
+
 otros <- c("VIOLENCIA FAMILIAR",
+           "FRAUDE",
+           "AMENAZAS"
            "NARCOMENUDEO POSESION SIMPLE", 
            "TORTURA",
            "PERSONAS EXTRAVIADAS Y AUSENTES", 
@@ -275,6 +288,37 @@ otros <- c("VIOLENCIA FAMILIAR",
            "PANDILLA, ASOCIACIÓN DELICTUOSA Y DELINCUENCIA ORGANIZADA", 
            "SABOTAJE")
 todos <- c(asesinatos,delitos_sexuales,lesiones,otros,plagios, danio,robos)
+
+# Vemos robos ----
+
+carpetas_completa %>% filter(delito %in% robos) %>% count(categoria_delito,delito) %>% 
+  ggplot(aes(reorder(categoria_delito,n),n,fill = delito))+
+  geom_col(color = "black")+
+  labs(x="", y="Número de Carpetas", title = "Robos Categorizados en Carpetas FGJ", 
+       caption = "Elaboración Propia, Datos Abiertos, Carpetas FGJCDMX", subtitle = "Coso")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"), 
+        legend.position = "none", 
+        axis.text.y = element_text(color = "black", size = 10))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+  scale_y_sqrt()
+##
+carpetas_completa %>% filter(categoria_delito == "DELITO DE BAJO IMPACTO")%>% 
+  filter(delito %in% robos) %>% count(delito) %>% filter(n>1000) %>% 
+  ggplot(aes(reorder(delito,n),n,fill = delito))+
+  geom_col(color = "black")+
+  geom_label(aes(label = comma(n)))+
+  labs(x="", y="Número de Carpetas", title = "Robos Categorizados en Carpetas FGJ", 
+       caption = "Elaboración Propia, Datos Abiertos, Carpetas FGJCDMX", 
+       subtitle = "Para la categoría Delitos de Bajo Impacto con más de 1,000 observaciones")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"), 
+        legend.position = "none", 
+        axis.text.y = element_text(color = "black", size = 10))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+  scale_y_sqrt()
+## 
+
 
 # Empezamos con robos ----
 # 642,126 observaciones desde 2016
