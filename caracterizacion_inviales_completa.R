@@ -104,16 +104,16 @@ accidente_auto_lesionado <- test_17_split[[3]] # 6,054 obs
 # atropellados ----
 atropellado_cadaver <- test_17_split[[4]] # 2,312 obs
 atropellado_detencion <- test_17_split[[5]] # 901 obs
-atropellado_lesionado <- test_17_split[[6]] # -------- 236,739 Done
+atropellado_lesionado <- test_17_split[[6]] # ------------------ 236,739 Done
 atropellado_sismo <- test_17_split[[21]] # 47 obs
 # choque con lesionados ----
-choque_cl_accidente <- test_17_split[[7]] # ---------- 431,755 Done
+choque_cl_accidente <- test_17_split[[7]] # -------------------- 431,755 Done
 choque_cl_sismo <- test_17_split[[8]] # 531 obs
 # choque con prensados ----
 choque_cp_accidente <- test_17_split[[9]] # 3,286 obs
 choque_cp_sismo <- test_17_split[[10]] # 2 observaciones 
 # choques sin lesionados ----
-choque_sl_accidente <- test_17_split[[11]] # --------- 955,391 Done
+choque_sl_accidente <- test_17_split[[11]] # -------------------- 955,391 Done
 choque_sl_sismo <- test_17_split[[12]] # 540 obs
 # ciclista ----
 ciclista_accidente <- test_17_split[[13]] # 8,455 obs
@@ -125,7 +125,7 @@ incidente_transito_mitaxi <- test_17_split[[16]] # 68 obs
 # Monopatin ----
 monopatin_accidente <- test_17_split[[17]] # 77 obs
 # Motociclista ----
-moto_accidente <- test_17_split[[18]] # ------- 96,541 Done
+moto_accidente <- test_17_split[[18]] # --------------------------- 96,541 Done
 # Otros ----
 otros_accidente <- test_17_split[[19]] # 2,713 obs
 # Persona atrapada_desbarrancada ----

@@ -30,6 +30,8 @@ stargazer(dd_1,dd_2,dd_3,dd_4, type = "text", digits = 2, covariate.labels = c("
           title = "Cablebus L2 Effects on Incidentes Viales")
 
 # L12
+# Efectos fijos poligono y fecha(año)
+
 dd_1 <- complete_choque_sl_accidente %>% lm(incidencia ~ l_12+para_l12+l_12*para_l12 + POB2010,.)
 dd_2 <- complete_choque_cl_accidente %>% lm(incidencia ~ l_12+para_l12+l_12*para_l12 + POB2010,.)
 dd_3 <- complete_atropellado_lesionado %>% lm(incidencia ~ l_12+para_l12+l_12*para_l12 + POB2010,.)
