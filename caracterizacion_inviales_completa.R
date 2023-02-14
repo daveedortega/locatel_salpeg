@@ -13,8 +13,10 @@ rm(list=ls())
 inviales_15 <- read_csv("input/incidentes_viales/inViales_2014_2015.csv")
 inviales_18 <- read_csv("input/incidentes_viales/inViales_2016_2018.csv")
 inviales_21 <- read_csv("input/incidentes_viales/inViales_2019_2021.csv")
-inviales_22 <- read_csv("input/incidentes_viales/inViales_2022_10.csv") # Actualizada pero seguir actualizando, DICE ALCALDÍA NO DELEGACION
-inviales_22 <- inviales_22 %>% rename(delegacion_inicio=alcaldia_inicio,delegacion_cierre=alcaldia_cierre) %>% select(!colonia)
+inviales_22 <- read_csv("input/incidentes_viales/inViales_2022_11.csv") # Desde noviembre se agregan 4 columnas de fechas creacion y cierre
+# Además dice alcaldía no colonia
+inviales_22 <- inviales_22 %>% rename(delegacion_inicio=alcaldia_inicio,delegacion_cierre=alcaldia_cierre) %>% 
+  select(!c(colonia, temporal_fecha_creacion,temporal_fecha_cierre,..anio_fecha_creacion,..anio_fecha_cierre))
 # Juntar Incidentes Viales en una sola BdD
 inviales_18_22 <- rbind(inviales_15,inviales_18,inviales_21,inviales_22)
 rm(list=setdiff(ls(), "inviales_18_22")) # Eliminamos cosas que no necesitamos
@@ -34,48 +36,40 @@ rm(list=setdiff(ls(), "inviales_18_22")) # Eliminamos cosas que no necesitamos
 ## Cargar Mapas ----
 colonias_cdmx <- read_sf("input/mapas/colonias_iecm_2019/mgpc_2019.shp")
 colonias_cdmx <- colonias_cdmx %>% st_make_valid() # Hacemos válidos los polígonos inválidos
-cablebus_1 <- read_sf("input/mapas/Cablebús Línea 1.kml")
-cablebus_2 <- read_sf("input/mapas/Cablebús Linea 2.kml")
-trole_l9 <- read_sf("input/mapas/ste_trolebus_shp/t2.shp") %>% filter(LINEA == "9")
-trole_elevado <- read_sf("input/mapas/Trolebús Elevado.kml")
-metro_mapa <- read_sf("input/mapas/stcmetro_shp/STC_Metro_lineas_utm14n.shp")
-l12 <- metro_mapa %>% filter(LINEA=="12")
-l1 <-  metro_mapa %>% filter(LINEA=="1")
-intersecciones_seguras <- read_sf("input/mapas/intersecciones_seguras/intersecciones_seguras.shp")
-
-# Arreglamos la base de colonias, tiene NOMBRES duplicados  ----
-
-colonias_cdmx$NOMUT[colonias_cdmx$NOMUT %>% duplicated()]
-colonias_cdmx$CVEUT[colonias_cdmx$CVEUT %>% duplicated()] 
-# cve NO está duplicada, podemos mejor usar eso, aunque es menos intuitivo
-
+# Cambiamos viejos mapas por buffers
+cablebus_1 <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_b500.shp")
+cablebus_2 <- read_sf("~/Desktop/Mapas/cb_l2_shp/cb_l2_b500.shp")
+trole_l9 <- read_sf("~/Desktop/Mapas/trolebus/trolebus_l9_b500.shp")
+trole_elevado <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_b500_v.shp")
+l12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_b500.shp") # Toda la línea
+el12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_eb500_feb.shp") # Estaciones cerradas desde feb 2023, i.e. las demás se abrieron
+l1 <-  read_sf("~/Desktop/Mapas/STC_shp/stc_l1_ec500m.shp") # Estaciones Cerradas
+# intersecciones_seguras <- read_sf("input/mapas/intersecciones_seguras/intersecciones_seguras.shp")
 
 # Intersectamos Vialidades con mapa de colonias para saber cuáles intersectan ----
-colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa a mismo CRS de otros
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa a mismo CRS de otros, ahora todos tienen el mismo
 colonias_cdmx <- colonias_cdmx %>% st_make_valid()
 cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
 cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
 tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
-trole_l9 <- st_transform(trole_l9,st_crs(colonias_cdmx))
 tr_9 <- lengths(st_intersects(colonias_cdmx,trole_l9))
-l1 <- st_transform(l1,st_crs(colonias_cdmx))
 l_1 <- lengths(st_intersects(colonias_cdmx,l1))
-l12 <- st_transform(l12,st_crs(colonias_cdmx))
 l_12 <- lengths(st_intersects(colonias_cdmx,l12))
-intersecciones_seguras <- st_transform(intersecciones_seguras,st_crs(colonias_cdmx))
-int_s <- lengths(st_intersects(colonias_cdmx,intersecciones_seguras))
+# intersecciones_seguras <- st_transform(intersecciones_seguras,st_crs(colonias_cdmx))
+# int_s <- lengths(st_intersects(colonias_cdmx,intersecciones_seguras))
 
-# Homologamos a 0,1, i.e., presencia? O que sea intensidad del tratamiento?
+# Homologamos a 0,1, para presencia o no del tratamiento
 
-colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,int_s,l_1,l_12) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
-  mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% mutate(int_s = ifelse(int_s>0,1,0)) %>% 
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,l_1,l_12) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
+  mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% 
   mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))%>% mutate(tr_9 = ifelse(tr_9>0,1,0))
 
-rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9,int_s) # Eliminamos lo que no necesitamos
+rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9) # Eliminamos lo que no necesitamos
 
 # Escribimos para seleccionar manualmente las colonias en QGIS aquellas colonias aledañoas ----
 # st_write(colonias_cdmx, "./output/colonias_cdmx_int.shp")
-# REVISAR INTERSECCIONES CON ANTONELLA
+# Ahora reescribimos con buffer
+# st_write(colonias_cdmx, "./output/colonias_cdmx_int_buffer.shp")
 
 
 # Agrupamos incidentes viales por mes ----
@@ -138,8 +132,8 @@ volcadura_accidente <- test_17_split[[25]]
 
 ## Generar base con colonias cdmx y fechas completas -----
 
-dates_complete <- seq(as.Date("2013-12-01"),as.Date("2022-10-01"),by = "month") %>% rep(1815) # each county has full dates
-colonias_key <- colonias_cdmx$CVEUT %>% rep(107) %>% sort() 
+dates_complete <- seq(as.Date("2013-12-01"),as.Date("2022-11-01"),by = "month") %>% rep(1815) # each county has full dates
+colonias_key <- colonias_cdmx$CVEUT %>% rep(108) %>% sort() # Must be same length as the sequence of dates
 
 dummy_df <- tibble(dates_complete,CVEUT = colonias_key)
 # dummy_df %>% count(dates_complete) %>% View()# testing
@@ -303,10 +297,11 @@ complete_moto_accidente <- complete_moto_accidente %>%
 # Fechas ----
 fechas_importantes <- data.frame(evento = c("Inicia Cuarentena por Covid-19", "Inicia Cablebus L1", 
                                             "Inicia Cablebus L2", "Tragedia L12", "Inicia Trolebus Elevado", "Reabre L9 Trolebus", 
-                                            "Reparaciones L1", ),
+                                            "Reparaciones L1", "Reapertura Mitad L12"),
                                  fecha = c(as.Date("2020-04-01"),as.Date("2021-07-11"),as.Date("2021-08-08"), 
-                                           as.Date("2021-05-03"), as.Date("2022-10-29"), as.Date("2021-01-30"),as.Date("2022-07-11")), 
-                                 incidentes = c(15000,11000,14000,18000,15000,15000,10000))
+                                           as.Date("2021-05-03"), as.Date("2022-10-29"), as.Date("2021-01-30"),as.Date("2022-07-11"), 
+                                           as.Date("2023-01-15")), 
+                                 incidentes = c(15000,11000,14000,18000,15000,15000,10000,10000))
 
 
 
