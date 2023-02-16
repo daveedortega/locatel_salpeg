@@ -13,10 +13,10 @@ rm(list=ls())
 inviales_15 <- read_csv("input/incidentes_viales/inViales_2014_2015.csv")
 inviales_18 <- read_csv("input/incidentes_viales/inViales_2016_2018.csv")
 inviales_21 <- read_csv("input/incidentes_viales/inViales_2019_2021.csv")
-inviales_22 <- read_csv("input/incidentes_viales/inViales_2022_11.csv") # Desde noviembre se agregan 4 columnas de fechas creacion y cierre
-# Además dice alcaldía no colonia
+# Actualizado hasta enero 2023
+inviales_22 <- read_csv("input/incidentes_viales/inViales_2022_2023.csv") # Además dice alcaldía no colonia
 inviales_22 <- inviales_22 %>% rename(delegacion_inicio=alcaldia_inicio,delegacion_cierre=alcaldia_cierre) %>% 
-  select(!c(colonia, temporal_fecha_creacion,temporal_fecha_cierre,..anio_fecha_creacion,..anio_fecha_cierre))
+  select(!c(colonia))
 # Juntar Incidentes Viales en una sola BdD
 inviales_18_22 <- rbind(inviales_15,inviales_18,inviales_21,inviales_22)
 rm(list=setdiff(ls(), "inviales_18_22")) # Eliminamos cosas que no necesitamos
@@ -132,8 +132,8 @@ volcadura_accidente <- test_17_split[[25]]
 
 ## Generar base con colonias cdmx y fechas completas -----
 
-dates_complete <- seq(as.Date("2013-12-01"),as.Date("2022-11-01"),by = "month") %>% rep(1815) # each county has full dates
-colonias_key <- colonias_cdmx$CVEUT %>% rep(108) %>% sort() # Must be same length as the sequence of dates
+dates_complete <- seq(as.Date("2013-12-01"),as.Date("2023-01-01"),by = "month") %>% rep(1815) # each county has full dates
+colonias_key <- colonias_cdmx$CVEUT %>% rep(110) %>% sort() # Must be same length as the sequence of dates
 
 dummy_df <- tibble(dates_complete,CVEUT = colonias_key)
 # dummy_df %>% count(dates_complete) %>% View()# testing
