@@ -12,7 +12,11 @@ dev.off()
 # CARPETAS
 carpetas_18 <- read_csv("input/carpetas_fgj/carpetas_2016-2018.csv")
 carpetas_21 <- read_csv("input/carpetas_fgj/carpetas_2019-2021.csv")
-carpetas_22 <- read_csv("input/carpetas_fgj/carpetas_2022.csv")
+carpetas_22 <- read_csv("input/carpetas_fgj/carpetas_2022_2023.csv") # A diciembre 2022
+# Eliminamos columnas adicionales
+carpetas_22 %>% glimpse()
+colnames(carpetas_22)[!colnames(carpetas_22) %in% colnames(carpetas_21)]
+carpetas_22 <- carpetas_22 %>% select(!c(temporal_fecha_hechos,temporal_fecha_inicio,..anio_fecha_hechos,..anio_fecha_inicio))
 # Pegamos
 carpetas_completa <-rbind(carpetas_18,carpetas_21,carpetas_22)
 rm(carpetas_18,carpetas_21,carpetas_22)
@@ -21,6 +25,34 @@ glimpse(carpetas_completa)
 # Mapa de Colonias
 colonias_cdmx <- read_sf("input/mapas/colonias_iecm_2019/mgpc_2019.shp")
 colonias_cdmx <- colonias_cdmx %>% st_make_valid() # Hacemos válidos los polígonos inválidos
+# Mapas Adicionales
+cablebus_1 <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_b500.shp")
+cablebus_2 <- read_sf("~/Desktop/Mapas/cb_l2_shp/cb_l2_b500.shp")
+trole_l9 <- read_sf("~/Desktop/Mapas/trolebus/trolebus_l9_b500.shp")
+trole_elevado <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_b500_v.shp")
+l12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_b500.shp") # Toda la línea
+el12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_eb500_feb.shp") # Estaciones cerradas desde feb 2023, i.e. las demás se abrieron
+l1 <-  read_sf("~/Desktop/Mapas/STC_shp/stc_l1_ec500m.shp") # Estaciones Cerradas
+# intersecciones_seguras <- read_sf("input/mapas/intersecciones_seguras/intersecciones_seguras.shp")
+
+# Intersectamos Vialidades con mapa de colonias para saber cuáles intersectan ----
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa a mismo CRS de otros, ahora todos tienen el mismo
+colonias_cdmx <- colonias_cdmx %>% st_make_valid()
+cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
+cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
+tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
+tr_9 <- lengths(st_intersects(colonias_cdmx,trole_l9))
+l_1 <- lengths(st_intersects(colonias_cdmx,l1))
+l_12 <- lengths(st_intersects(colonias_cdmx,l12))
+# Homologamos a 0,1, para presencia o no del tratamiento
+
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,l_1,l_12) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
+  mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% 
+  mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))%>% mutate(tr_9 = ifelse(tr_9>0,1,0))
+
+rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9) # Eliminamos lo que no necesitamos
+
+
 # Estadísticas Generales ----
 # Línea de tiempo
 carpetas_completa %>% mutate(fecha = as.Date(paste0(format(fecha_inicio,format = "%Y-%m"), "-01"))) %>% count(fecha) %>% 
@@ -28,7 +60,7 @@ carpetas_completa %>% mutate(fecha = as.Date(paste0(format(fecha_inicio,format =
   geom_line(color = "#9f2441", size = 1)+
   geom_smooth()+
   labs(x="", y="Carpetas de Investigación", title = "Carpetas de Investigación iniciadas al mes", 
-       subtitle = " entre 01/2016 y 09/2022 reportados por la FGJ", fill ="", caption = "Fuente: Datos Abiertos - GCDMX")+
+       subtitle = " entre 01/2016 y 12/2022 reportados por la FGJ", fill ="", caption = "Fuente: Datos Abiertos - GCDMX")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#23433A"),
         plot.subtitle = element_text(size = 22, face="bold"))
 
@@ -37,7 +69,7 @@ carpetas_completa %>% count(categoria_delito) %>% ggplot(aes(reorder(categoria_d
   geom_col(color = "black", size = 0.1)+
   geom_label(aes(label = comma(n)))+
   labs(x="", y="Carpetas de Investigación", title = "Carpetas de Investigación por Categoría de Delito", 
-       subtitle = " entre 01/2016 y 09/2022 reportados por la FGJ", fill ="", caption = "Fuente: Datos Abiertos - GCDMX")+
+       subtitle = " entre 01/2016 y 12/2022 reportados por la FGJ", fill ="", caption = "Fuente: Datos Abiertos - GCDMX")+
   theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
         plot.subtitle = element_text(size = 22, face="bold"), 
         legend.position = "none", 
@@ -62,12 +94,12 @@ puntos_carpetas <- carpetas_completa %>% select(fecha_inicio, categoria_delito,d
 colonias_cdmx <- st_transform(colonias_cdmx,st_crs(puntos_carpetas))
 
 ## Selección de Delitos ----
-puntos_carpetas %>% count(delito) %>% View()
+# puntos_carpetas %>% count(delito) %>% View()
 
 # Por Categorías ----
 puntos_carpetas %>% count(categoria_delito)
 #Todo parece interesante, sólo quitamows hechos no delictivos, 61,929 observaciones
-carpetas_completa %>%  filter(categoria_delito != "HECHO NO DELICTIVO") %>% count(delito) %>% filter(!delito %in% todos) %>% View()
+# carpetas_completa %>%  filter(categoria_delito != "HECHO NO DELICTIVO") %>% count(delito) %>% filter(!delito %in% todos) %>% View()
 # 322 categorías, tenemos que quitar un montón 
 # total
 robos <- c("ROBO DE OBJETOS", 
@@ -200,7 +232,9 @@ delitos_sexuales <- c("VIOLACION EQUIPARADA",
                "ACOSO SEXUAL AGRAVADO EN CONTRA DE MENORES",
                "VIOLACION EQUIPARADA Y ROBO DE VEHICULO", 
                "VIOLACION Y ROBO DE VEHICULO",
-               "CONTRA LA INTIMIDAD SEXUAL")
+               "CONTRA LA INTIMIDAD SEXUAL",
+               "CORRUPCION DE MENORES E INCAPACES",
+               "LENOCINIO")
 
 plagios <- c("SUSTRACCION DE MENORES",
                "PRIVACION DE LA LIBERTAD PERSONAL", 
@@ -214,7 +248,9 @@ plagios <- c("SUSTRACCION DE MENORES",
                "TRAFICO DE INFANTES",
              "DESAPARICION FORZADA DE PERSONAS",
              "RETENCIÓN DE MENORES",
-             "SECUESTRO")
+             "SECUESTRO",
+             "PORNOGRAFIA INFANTIL",
+             "PORNOGRAFÍA")
 
 lesiones <- c("LESIONES INTENCIONALES POR GOLPES", 
                "LESIONES CULPOSAS POR TRANSITO VEHICULAR EN COLISION", 
@@ -252,7 +288,9 @@ asesinatos <- c("TENTATIVA DE HOMICIDIO",
                "FEMINICIDIO", 
                "FEMINICIDIO POR ARMA BLANCA", 
                "FEMINICIDIO POR DISPARO DE ARMA DE FUEGO", 
-               "FEMINICIDIO POR GOLPES")
+               "FEMINICIDIO POR GOLPES",
+               "HOMICIDIO CULPOSO FUERA DEL D.F (ATROPELLADO)",
+               "HOMICIDIO CULPOSO FUERA DEL D.F (COLISION)")
 
 danio <- c("DAÑO EN PROPIEDAD AJENA CULPOSA POR TRÁNSITO VEHICULAR A AUTOMOVIL", 
            "DAÑO EN PROPIEDAD AJENA INTENCIONAL", 
@@ -262,9 +300,28 @@ danio <- c("DAÑO EN PROPIEDAD AJENA CULPOSA POR TRÁNSITO VEHICULAR A AUTOMOVIL
            "DAÑO EN PROPIEDAD AJENA INTENCIONAL A CASA HABITACION", 
            "DAÑO EN PROPIEDAD AJENA CULPOSA POR TRÁNSITO VEHICULAR A BIENES INMUEBLES",
            "DAÑO EN PROPIEDAD AJENA INTENCIONAL A NEGOCIO", 
-           "DAÑO EN PROPIEDAD AJENA INTENCIONAL A VIAS DE COMUNICACION")
+           "DAÑO EN PROPIEDAD AJENA INTENCIONAL A VIAS DE COMUNICACION",
+           "DAÑO SUELO (ACTIVIDAD, INVASIÓN O EXTRACCIÓN)")
 
-
+de_servidores_publicos <- c("LA ADMINISTRACION DE JUSTICIA",
+                            "ABUSO DE AUTORIDAD Y USO ILEGAL DE LA FUERZA PUBLICA",
+                            "NEGACION DEL SERVICIO PUBLICO",
+                            "ABUSO DE AUTORIDAD",
+                            "COHECHO",
+                            "EJERCICIO ILEGAL Y ABANDONO DEL SERVICIO PUBLICO",
+                            "CONTRA FUNCIONARIOS PUBLICOS",
+                            "USO INDEBIDO DE ATRIBUCIONES Y FACULTADES",
+                            "EJERCICIO INDEBIDO DEL SERVIDOR PUBLICO",
+                            "USURPACION DE FUNCIONES PUBLICAS",
+                            "PECULADO",
+                            "OPERACIONES CON RECURSOS DE PROCEDENCIA ILICITA",
+                            "TRAFICO DE INFLUENCIA",
+                            "USURPACION DE FUNCIONES",
+                            "ENRIQUECIMIENTO ILICITO",
+                            "COALICIÓN DE SERVIDORES PÚBLICOS",
+                            "OPERACIONES CON RECURSOS DE PROCEDENCIA ILEGAL",
+                            "COACCION DE SERVIDORES PUBLICOS",
+                            "EJERCICIO ABUSIVO DE FUNCIONES")
 
 otros <- c("VIOLENCIA FAMILIAR",
            "FRAUDE",
@@ -286,8 +343,9 @@ otros <- c("VIOLENCIA FAMILIAR",
            "ATAQUE A LAS VIAS DE COMUNICACION (DAÑO A VIAS O MEDIOS DE TRANSPORTE)", 
            "TENTATIVA DE SUICIDIO",
            "PANDILLA, ASOCIACIÓN DELICTUOSA Y DELINCUENCIA ORGANIZADA", 
-           "SABOTAJE")
-todos <- c(asesinatos,delitos_sexuales,lesiones,otros,plagios, danio,robos)
+           "SABOTAJE", 
+           "ABUSO DE CONFIANZA")
+todos <- c(asesinatos,delitos_sexuales,lesiones,otros,plagios, danio,robos, de_servidores_publicos)
 
 # Vemos robos ----
 
@@ -302,7 +360,49 @@ carpetas_completa %>% filter(delito %in% robos) %>% count(categoria_delito,delit
         axis.text.y = element_text(color = "black", size = 10))+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   scale_y_sqrt()
-##
+
+# LDT de robos ----
+# Se ve MUY bien
+carpetas_completa %>% filter(delito %in% robos) %>% 
+  mutate(ano_mes = format(fecha_inicio, format = "%Y-%m")) %>% count(ano_mes) %>% 
+  mutate(fecha = as.Date(paste0(ano_mes,"-01"))) %>% 
+  ggplot(aes(fecha,n))+
+  geom_line(color = "#9f2241")+
+  geom_smooth(color = "blue")+
+  labs(x="", y = "Robos totales*", title = "Número de Robos Totales* en CDMX al Mes", 
+       subtitle = "De acuerdo a la FGJCDMX entre 01/2016 y 12/2022",
+       caption = "De acuerdo a la Lista de Robos*, Fuente: Carpetas de Investigación - FGJCDMX, Datos Abiertos")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
+# LDT de asesinatos ----
+carpetas_completa %>% filter(delito %in% asesinatos) %>% 
+  mutate(ano_mes = format(fecha_inicio, format = "%Y-%m")) %>% count(ano_mes) %>% 
+  mutate(fecha = as.Date(paste0(ano_mes,"-01"))) %>% 
+  ggplot(aes(fecha,n))+
+  geom_line(color = "#9f2241")+
+  geom_smooth(color = "blue")+
+  labs(x="", y = "Asesinatos totales*", title = "Número de Asesinatos Totales* en CDMX al Mes", 
+       subtitle = "De acuerdo a la FGJCDMX entre 01/2016 y 12/2022",
+       caption = "De acuerdo a la Lista de Asesinatos*, Fuente: Carpetas de Investigación - FGJCDMX, Datos Abiertos")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
+
+# LDT Delitos Sexuales ----
+carpetas_completa %>% filter(delito %in% delitos_sexuales) %>% 
+  mutate(ano_mes = format(fecha_inicio, format = "%Y-%m")) %>% count(ano_mes) %>% 
+  mutate(fecha = as.Date(paste0(ano_mes,"-01"))) %>% 
+  ggplot(aes(fecha,n))+
+  geom_line(color = "#9f2241")+
+  geom_smooth(color = "blue")+
+  labs(x="", y = "Delitos Sexuales totales*", title = "Número de Delitos Sexuales Totales* en CDMX al Mes", 
+       subtitle = "De acuerdo a la FGJCDMX entre 01/2016 y 12/2022",
+       caption = "De acuerdo a la Lista de Delitos Sexuales*, Fuente: Carpetas de Investigación - FGJCDMX, Datos Abiertos")+
+  theme(plot.title = element_text(size = 28, face = "bold", color = "#9f2441"),
+        plot.subtitle = element_text(size = 22, face="bold"))
+
+
+
+## Coso ----
 carpetas_completa %>% filter(categoria_delito == "DELITO DE BAJO IMPACTO")%>% 
   filter(delito %in% robos) %>% count(delito) %>% filter(n>1000) %>% 
   ggplot(aes(reorder(delito,n),n,fill = delito))+
@@ -317,21 +417,32 @@ carpetas_completa %>% filter(categoria_delito == "DELITO DE BAJO IMPACTO")%>%
         axis.text.y = element_text(color = "black", size = 10))+
   scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
   scale_y_sqrt()
-## 
 
 
 # Empezamos con robos ----
-# 642,126 observaciones desde 2016
-# Primero por fecha y luego por delito, genera un montón de dfs
-fecha_robos <- puntos_carpetas %>% filter(delito %in% robos) %>%  
-  mutate(ano_mes = format(fecha_inicio,format = "%Y-%m")) %>% group_split(ano_mes,delito)
+carpetas_completa %>% filter(delito %in% robos) %>% count()
+# 662,583 observaciones desde 2016
+# Agrupamos robos en general --
+fecha_robos <- puntos_carpetas %>% filter(delito %in% robos) %>%  mutate(c_delito = "ROBOS") %>% 
+  mutate(ano_mes = format(fecha_inicio,format = "%Y-%m")) %>% select(ano_mes,c_delito,geometry) %>% 
+  group_split(ano_mes, c_delito)
+#Asesinatos --
+carpetas_completa %>% filter(delito %in% asesinatos) %>% count()
+# 14,207 obs
+fecha_asesinatos <- puntos_carpetas %>% filter(delito %in% asesinatos) %>%  mutate(c_delito = "ASESINATOS") %>% 
+  mutate(ano_mes = format(fecha_inicio,format = "%Y-%m"))%>% select(ano_mes,c_delito,geometry) %>% 
+  group_split(ano_mes, c_delito)
+# Delitos en general --
+fechas_delitos <- puntos_carpetas %>% mutate(c_delito = "TODOS") %>%
+  mutate(ano_mes = format(fecha_inicio,format = "%Y-%m")) %>% select(ano_mes,c_delito,geometry) %>% 
+  group_split(ano_mes, c_delito)
 
 # Funcion que itera ----
 iterated_intersection <- function(x,y,z){
   for (i in 1:length(x)){
     df <- x[[i]] # ith data frame
-    fetch_date <- df[1,5] #get date, 5th column
-    fetch_what <- paste(df[1,2],df[1,3]) # categoria - delito
+    fetch_date <- df[1,1] #get date, 1st column
+    fetch_what <- paste(df[1,2]) # categoria - delito
     isects <- lengths(st_intersects(z,df$geometry)) # vector of intersections
     y[,ncol(y)+1] <- isects # después lo puedo colapsar como columna de atributos con pivot wider
     colnames(y)[ncol(y)] <- paste(fetch_what,fetch_date) # rename w date
@@ -340,26 +451,83 @@ iterated_intersection <- function(x,y,z){
   return(y)
 }
 test <- data.frame(id = 1:length(colonias_cdmx$geometry))# La función necesita saber cuántas tiene
-
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(fecha_robos[[1]]$geometry))
+colonias_cdmx <- colonias_cdmx %>% st_make_valid()
 # Aplicamos función a todos -----
 tok <- Sys.time()
-robos_fechas_intersecciones<- iterated_intersection(fecha_robos,test,colonias_cdmx) # masa enorme de columnas
+robos_fechas_intersecciones<- iterated_intersection(fecha_robos,test,colonias_cdmx) # 84 dfs
+asesinatos_fechas_intersecciones<- iterated_intersection(fecha_asesinatos,test,colonias_cdmx) # 84 dfs
+delitos_general <- iterated_intersection(fechas_delitos,test,colonias_cdmx) # 84 dfs
 tik <- Sys.time()
 print(tik-tok)
 
-## Partimos puntos por meses ----
 
-a_0 <- cbind(colonia = colonias_cdmx$CVEUT,robos_fechas_intersecciones) #pegamos clave unica
-a_0 <- a_0 %>% select(!id)
-a_0 <- a_0 %>% pivot_longer(!colonia,names_to = "incidente_fecha",values_to = "incidentes") # pivoteamos y luego separamos
-# Separamos fechas
-carpetas_wf <- a_0 %>% separate(incidente_fecha,into = c("accidente","ano_mes"), sep = "(?<=[a-zA-Z])\\s*(?=[0-9])")
-# 10 millones de observaciones 
-# Falta rellenar las fehcas - delito faltante
-# son 115 robos x 1815 colonias x 82 meses más o menos deberían ser 17,115,450
-carpetas_wf %>% count(ano_mes) 
+## Generar base con colonias cdmx y fechas completas -----
+
+dates_complete <- seq(as.Date("2016-01-01"),as.Date("2022-12-01"),by = "month") %>% rep(1815) # each county has full dates
+colonias_key <- colonias_cdmx$CVEUT %>% rep(84) %>% sort() # Must be same length as the sequence of dates
+dummy_df <- tibble(dates_complete,CVEUT = colonias_key)
+complete_df <- dummy_df %>% left_join(colonias_cdmx,by = "CVEUT")
+
+#Proceso acortado de generar base ----
+#Robos
+robos_final <- robos_fechas_intersecciones %>% cbind(CVEUT = colonias_cdmx$CVEUT) %>%  select(!id) %>% 
+  pivot_longer(!CVEUT,names_to = "delito_fecha",values_to = "delitos") %>% 
+  separate(delito_fecha, into = c("delito", "ano_mes"),sep = " ") %>% mutate(dates_complete = as.Date(paste0(ano_mes, "-01")))
+#Asesinatos
+asesinatos_final <- asesinatos_fechas_intersecciones %>% cbind(CVEUT = colonias_cdmx$CVEUT) %>%  select(!id) %>% 
+  pivot_longer(!CVEUT,names_to = "delito_fecha",values_to = "delitos") %>% 
+  separate(delito_fecha, into = c("delito", "ano_mes"),sep = " ") %>% mutate(dates_complete = as.Date(paste0(ano_mes, "-01")))
+#Delitos Totales
+delitos_totales_final <- delitos_general %>% cbind(CVEUT = colonias_cdmx$CVEUT) %>%  select(!id) %>% 
+  pivot_longer(!CVEUT,names_to = "delito_fecha",values_to = "delitos") %>% 
+  separate(delito_fecha, into = c("delito", "ano_mes"),sep = " ") %>% mutate(dates_complete = as.Date(paste0(ano_mes, "-01")))
 
 
+# Pegamos a base final ----
 
+complete_robos <- complete_df %>% left_join(robos_final, by = c("CVEUT","dates_complete"))
+complete_asesinatos <- complete_df %>% left_join(asesinatos_final, by = c("CVEUT","dates_complete"))
+complete_delitos <- complete_df %>% left_join(delitos_totales_final, by = c("CVEUT","dates_complete"))
 
+# Inicio de proyectos ----
+# Creamos columnas para los respectivos dummies de inicios y ordenamos base
+# Robos
+complete_robos <- complete_robos %>% 
+  mutate(inicio_cb1 = ifelse(dates_complete > as.Date("2021-07-11"),1,0)) %>%
+  mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
+  mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
+  mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
+  mutate(POB2010 = as.numeric(POB2010)) %>% 
+  select(dates_complete,CVEUT,NOMUT,NOMDT,POB2010,
+         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         inicio_l9,para_l1,para_l12,geometry)
+# Asesinatos 
+complete_asesinatos <- complete_asesinatos %>% 
+  mutate(inicio_cb1 = ifelse(dates_complete > as.Date("2021-07-11"),1,0)) %>%
+  mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
+  mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
+  mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
+  mutate(POB2010 = as.numeric(POB2010)) %>% 
+  select(dates_complete,CVEUT,NOMUT,NOMDT,POB2010,
+         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         inicio_l9,para_l1,para_l12,geometry)
+# Totales 
+# Asesinatos 
+complete_delitos <- complete_delitos %>% 
+  mutate(inicio_cb1 = ifelse(dates_complete > as.Date("2021-07-11"),1,0)) %>%
+  mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
+  mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
+  mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
+  mutate(POB2010 = as.numeric(POB2010)) %>% 
+  select(dates_complete,CVEUT,NOMUT,NOMDT,POB2010,
+         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         inicio_l9,para_l1,para_l12,geometry)
 
+## LISTOOO!!!
