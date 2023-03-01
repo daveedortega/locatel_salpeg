@@ -80,7 +80,7 @@ dd_1 <- complete_robos %>% lm(delitos ~ tr_e+inicio_te+tr_e*inicio_te + POB2010,
 dd_2 <- complete_asesinatos %>% lm(delitos ~  tr_e+inicio_te+tr_e*inicio_te + POB2010,.)
 dd_3 <- complete_delitos %>% lm(delitos ~  tr_e+inicio_te+tr_e*inicio_te + POB2010,.)
 # Tabla
-stargazer(dd_1,dd_2,dd_3, type = "text", digits = 2, covariate.labels = c("Trolebus Elevado","Start","Population 2010","TR_E X Start"),
+stargazer(dd_1,dd_2,dd_3, type = "text", digits = 2, covariate.labels = c("Trolebus Elevado","Start","Population 2010","TRE X Start"),
           dep.var.labels = "|1 = ROBOS | 2 = ASESINATOS | 3  = Delitos Totales |",
           title = "Trolebus Elevado Effects on Carpetas de Investigación")
 # L1 ----
