@@ -20,39 +20,65 @@ colnames(carpetas_22)[!colnames(carpetas_22) %in% colnames(carpetas_21)]
 carpetas_22 <- carpetas_22 %>% select(!c(temporal_fecha_hechos,temporal_fecha_inicio,..anio_fecha_hechos,..anio_fecha_inicio))
 # Pegamos
 carpetas_completa <-rbind(carpetas_18,carpetas_21,carpetas_22)
-rm(carpetas_18,carpetas_21,carpetas_22)
 # Quitamos lo que no ocupamos
+rm(carpetas_18,carpetas_21,carpetas_22)
 glimpse(carpetas_completa)
-# Mapa de Colonias
+
+## Cargar Mapas ----
 colonias_cdmx <- read_sf("~/Desktop/Mapas/colonias_indicemarginacionurbana_2020/cdmx_imu_2020/cdmx_imu2020.shp")
 colonias_cdmx <- colonias_cdmx %>% st_make_valid() # Hacemos válidos los polígonos inválidos
-# Mapas Adicionales
-cablebus_1 <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_b500.shp")
+# Mapas de líneas Y buffers:
+#CB L1
+cablebus_1b <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_b500.shp")
+cablebus_1 <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_l.shp")
+#CB L2
 cablebus_2 <- read_sf("~/Desktop/Mapas/cb_l2_shp/cb_l2_b500.shp")
-trole_l9 <- read_sf("~/Desktop/Mapas/trolebus/trolebus_l9_b500.shp")
-trole_elevado <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_b500_v.shp")
-l12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_b500.shp") # Toda la línea
-el12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_eb500_feb.shp") # Estaciones cerradas desde feb 2023, i.e. las demás se abrieron
-l1 <-  read_sf("~/Desktop/Mapas/STC_shp/stc_l1_ec500m.shp") # Estaciones Cerradas
-# intersecciones_seguras <- read_sf("input/mapas/intersecciones_seguras/intersecciones_seguras.shp")
+cablebus_2b <- read_sf("~/Desktop/Mapas/cb_l2_shp/cb_l2_l.shp")
+#TR L9
+trole_l9b <- read_sf("~/Desktop/Mapas/trolebus/trolebus_l9_b500.shp")
+trole_l9 <- read_sf("~/Desktop/Mapas/trolebus/t2.shp") %>% filter(LINEA == 9) %>% st_transform(crs = st_crs(cablebus_2b))
+#TR E
+trole_elevadob <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_b500_v.shp")
+trole_elevado <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_l.shp")
+# L12
+l12b <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_b500.shp") # Toda la línea
+el12b <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_eb500_feb.shp") # Estaciones cerradas desde feb 2023, i.e. las demás se abrieron
+l12<- read_sf("~/Desktop/Mapas/STC_shp/stc_l.shp") %>% filter(LINEA == "12") # Toda la línea
+# L1
+l1b <-  read_sf("~/Desktop/Mapas/STC_shp/stc_l1_ec500m.shp") # Estaciones Cerradas
+l1 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l.shp") %>% filter(LINEA == "1")
 
 # Intersectamos Vialidades con mapa de colonias para saber cuáles intersectan ----
 colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa a mismo CRS de otros, ahora todos tienen el mismo
 colonias_cdmx <- colonias_cdmx %>% st_make_valid()
+
 cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
+cb_1b <- lengths(st_intersects(colonias_cdmx,cablebus_1b))
+
 cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
+cb_2b <- lengths(st_intersects(colonias_cdmx,cablebus_2b))
+
 tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
+tr_eb <- lengths(st_intersects(colonias_cdmx,trole_elevadob))
+
 tr_9 <- lengths(st_intersects(colonias_cdmx,trole_l9))
+tr_9b <- lengths(st_intersects(colonias_cdmx,trole_l9b))
+
 l_1 <- lengths(st_intersects(colonias_cdmx,l1))
+l_1b <- lengths(st_intersects(colonias_cdmx,l1b))
+
 l_12 <- lengths(st_intersects(colonias_cdmx,l12))
-# Homologamos a 0,1, para presencia o no del tratamiento
+l_12b <- lengths(st_intersects(colonias_cdmx,l12b))
 
-colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,l_1,l_12) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
+# Homologamos a 0,1, para presencia o no del tratamiento ----
+
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,l_1,l_12,cb_1b,cb_2b,tr_9b,tr_eb,l_1b,l_12b) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
   mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% 
-  mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))%>% mutate(tr_9 = ifelse(tr_9>0,1,0))
+  mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))%>% mutate(tr_9 = ifelse(tr_9>0,1,0)) %>% 
+  mutate(cb_1b = ifelse(cb_1b>0,1,0)) %>% mutate(cb_2b = ifelse(cb_2b>0,1,0)) %>% mutate(tr_9b = ifelse(tr_9b>0,1,0)) %>% 
+  mutate(tr_eb = ifelse(tr_eb>0,1,0)) %>% mutate(l_1b = ifelse(l_1b>0,1,0)) %>% mutate(l_12b = ifelse(l_12b>0,1,0))
 
-rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9) # Eliminamos lo que no necesitamos
-
+rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9,l_1b,cb_1b,cb_2b,tr_9b,tr_eb,l_12b) # Eliminamos lo que no necesitamos
 
 # Estadísticas Generales ----
 # Línea de tiempo
@@ -502,7 +528,9 @@ complete_robos <- complete_robos %>%
   mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,NOM_MUN,NOM_ENT,POBTOT,IM_2020,
-         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 # Asesinatos 
 complete_asesinatos <- complete_asesinatos %>% 
@@ -513,7 +541,9 @@ complete_asesinatos <- complete_asesinatos %>%
   mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,NOM_MUN,NOM_ENT,POBTOT,IM_2020,
-         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 # Totales 
 # Asesinatos 
@@ -525,7 +555,9 @@ complete_delitos <- complete_delitos %>%
   mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,NOM_MUN,NOM_ENT,POBTOT,IM_2020,
-         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         delito,delitos,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 
 ## LISTOOO!!!

@@ -13,7 +13,7 @@ rm(list=ls())
 inviales_15 <- read_csv("input/incidentes_viales/inViales_2014_2015.csv")
 inviales_18 <- read_csv("input/incidentes_viales/inViales_2016_2018.csv")
 inviales_21 <- read_csv("input/incidentes_viales/inViales_2019_2021.csv")
-# Actualizado hasta enero 2023
+# Actualizado hasta febrero 2023
 inviales_22 <- read_csv("input/incidentes_viales/inViales_2022_2023.csv") # Además dice alcaldía no colonia
 inviales_22 <- inviales_22 %>% rename(delegacion_inicio=alcaldia_inicio,delegacion_cierre=alcaldia_cierre) %>% 
   select(!c(colonia))
@@ -36,41 +36,63 @@ rm(list=setdiff(ls(), "inviales_18_22")) # Eliminamos cosas que no necesitamos
 ## Cargar Mapas ----
 colonias_cdmx <- read_sf("~/Desktop/Mapas/colonias_indicemarginacionurbana_2020/cdmx_imu_2020/cdmx_imu2020.shp")
 colonias_cdmx <- colonias_cdmx %>% st_make_valid() # Hacemos válidos los polígonos inválidos
-# Cambiamos viejos mapas por buffers
-cablebus_1 <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_b500.shp")
+# Mapas de líneas Y buffers:
+#CB L1
+cablebus_1b <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_b500.shp")
+cablebus_1 <- read_sf("~/Desktop/Mapas/cb_l1_e/cb_l1_l.shp")
+#CB L2
 cablebus_2 <- read_sf("~/Desktop/Mapas/cb_l2_shp/cb_l2_b500.shp")
-trole_l9 <- read_sf("~/Desktop/Mapas/trolebus/trolebus_l9_b500.shp")
-trole_elevado <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_b500_v.shp")
-l12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_b500.shp") # Toda la línea
-el12 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_eb500_feb.shp") # Estaciones cerradas desde feb 2023, i.e. las demás se abrieron
-l1 <-  read_sf("~/Desktop/Mapas/STC_shp/stc_l1_ec500m.shp") # Estaciones Cerradas
-# intersecciones_seguras <- read_sf("input/mapas/intersecciones_seguras/intersecciones_seguras.shp")
+cablebus_2b <- read_sf("~/Desktop/Mapas/cb_l2_shp/cb_l2_l.shp")
+#TR L9
+trole_l9b <- read_sf("~/Desktop/Mapas/trolebus/trolebus_l9_b500.shp")
+trole_l9 <- read_sf("~/Desktop/Mapas/trolebus/t2.shp") %>% filter(LINEA == 9) %>% st_transform(crs = st_crs(cablebus_2b))
+#TR E
+trole_elevadob <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_b500_v.shp")
+trole_elevado <- read_sf("~/Desktop/Mapas/tr_e_shp/tr_e_l.shp")
+# L12
+l12b <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_b500.shp") # Toda la línea
+el12b <- read_sf("~/Desktop/Mapas/STC_shp/stc_l12_eb500_feb.shp") # Estaciones cerradas desde feb 2023, i.e. las demás se abrieron
+l12<- read_sf("~/Desktop/Mapas/STC_shp/stc_l.shp") %>% filter(LINEA == "12") # Toda la línea
+# L1
+l1b <-  read_sf("~/Desktop/Mapas/STC_shp/stc_l1_ec500m.shp") # Estaciones Cerradas
+l1 <- read_sf("~/Desktop/Mapas/STC_shp/stc_l.shp") %>% filter(LINEA == "1")
 
 # Intersectamos Vialidades con mapa de colonias para saber cuáles intersectan ----
 colonias_cdmx <- st_transform(colonias_cdmx,st_crs(cablebus_1)) # Cambiamos mapa a mismo CRS de otros, ahora todos tienen el mismo
 colonias_cdmx <- colonias_cdmx %>% st_make_valid()
+
 cb_1 <- lengths(st_intersects(colonias_cdmx,cablebus_1))
+cb_1b <- lengths(st_intersects(colonias_cdmx,cablebus_1b))
+
 cb_2 <- lengths(st_intersects(colonias_cdmx,cablebus_2))
+cb_2b <- lengths(st_intersects(colonias_cdmx,cablebus_2b))
+
 tr_e <- lengths(st_intersects(colonias_cdmx,trole_elevado))
+tr_eb <- lengths(st_intersects(colonias_cdmx,trole_elevadob))
+
 tr_9 <- lengths(st_intersects(colonias_cdmx,trole_l9))
+tr_9b <- lengths(st_intersects(colonias_cdmx,trole_l9b))
+
 l_1 <- lengths(st_intersects(colonias_cdmx,l1))
+l_1b <- lengths(st_intersects(colonias_cdmx,l1b))
+
 l_12 <- lengths(st_intersects(colonias_cdmx,l12))
-# intersecciones_seguras <- st_transform(intersecciones_seguras,st_crs(colonias_cdmx))
-# int_s <- lengths(st_intersects(colonias_cdmx,intersecciones_seguras))
+l_12b <- lengths(st_intersects(colonias_cdmx,l12b))
 
-# Homologamos a 0,1, para presencia o no del tratamiento
+# Homologamos a 0,1, para presencia o no del tratamiento ----
 
-colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,l_1,l_12) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
+colonias_cdmx <- colonias_cdmx %>% cbind(cb_1,cb_2,tr_9,tr_e,l_1,l_12,cb_1b,cb_2b,tr_9b,tr_eb,l_1b,l_12b) %>% mutate(cb_1 = ifelse(cb_1>0,1,0)) %>% 
   mutate(cb_2 = ifelse(cb_2>0,1,0)) %>% mutate(tr_e = ifelse(tr_e>0,1,0)) %>% 
-  mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))%>% mutate(tr_9 = ifelse(tr_9>0,1,0))
+  mutate(l_12 = ifelse(l_12>0,1,0)) %>% mutate(l_1 = ifelse(l_1>0,1,0))%>% mutate(tr_9 = ifelse(tr_9>0,1,0)) %>% 
+  mutate(cb_1b = ifelse(cb_1b>0,1,0)) %>% mutate(cb_2b = ifelse(cb_2b>0,1,0)) %>% mutate(tr_9b = ifelse(tr_9b>0,1,0)) %>% 
+  mutate(tr_eb = ifelse(tr_eb>0,1,0)) %>% mutate(l_1b = ifelse(l_1b>0,1,0)) %>% mutate(l_12b = ifelse(l_12b>0,1,0))
 
-rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9) # Eliminamos lo que no necesitamos
+rm(l_1,l_12,cb_1,cb_2,tr_e,tr_9,l_1b,cb_1b,cb_2b,tr_9b,tr_eb,l_12b) # Eliminamos lo que no necesitamos
 
 # Escribimos para seleccionar manualmente las colonias en QGIS aquellas colonias aledañoas ----
-# st_write(colonias_cdmx, "./output/colonias_cdmx_int.shp")
+# st_write(colonias_cdmx, "./output/colonias_ims2020_cdmx.shp")
 # Ahora reescribimos con buffer
 # st_write(colonias_cdmx, "./output/colonias_cdmx_int_buffer.shp")
-
 
 # Agrupamos incidentes viales por mes ----
 
@@ -78,7 +100,6 @@ inviales_18_22 %>% glimpse()
 # Tomamos fecha de creación, no tomamos alcaldia porque lo vamos a hacer por georeferencia 
 inviales_18_22 <- inviales_18_22 %>% mutate(ano_mes = format(fecha_creacion,format = "%Y-%m")) %>% 
   select(ano_mes,tipo_incidente_c4,incidente_c4,latitud,longitud,tipo_entrada)
-
 
 
 # Primero convertimos en punto geográffico para que luego no haya problemas -----
@@ -132,8 +153,11 @@ volcadura_accidente <- test_17_split[[25]]
 
 ## Generar base con colonias cdmx y fechas completas -----
 
-dates_complete <- seq(as.Date("2013-12-01"),as.Date("2023-01-01"),by = "month") %>% rep(2243) # each county has full dates, 2243 colonias
-colonias_key <- colonias_cdmx$CVE_COL %>% rep(110) %>% sort() # Must be same length as the sequence of dates
+# actualizar mes manualmente, por ahora
+fechas_secuencia <- seq(as.Date("2013-12-01"),as.Date("2023-02-01"),by = "month")
+
+dates_complete <- fechas_secuencia %>% rep(2243) # each county has full dates, 2243 colonias
+colonias_key <- colonias_cdmx$CVE_COL %>% rep(length(fechas_secuencia)) %>% sort() # Must be same length as the sequence of dates
 
 dummy_df <- tibble(dates_complete,CVE_COL = colonias_key)
 # dummy_df %>% count(dates_complete) %>% View()# testing
@@ -149,27 +173,13 @@ moto_accidente <- moto_accidente %>% group_split(ano_mes)
 # Añadimos total
 total_incidentes <- inviales_18_22 %>% group_by(ano_mes) %>% group_split()
 
-# Old code chunk to do so
-test <- data.frame(id = 1:length(colonias_cdmx$geometry))# La función necesita saber cuántas tiene
-colonias_cdmx <- st_transform(colonias_cdmx,st_crs(accidente_auto_cadaver$geometry))
-colonias_cdmx <- colonias_cdmx %>% st_make_valid()
-# Funcion que itera ----
-iterated_intersection <- function(x,y,z){
-  for (i in 1:length(x)){
-    df <- x[[i]] # ith data frame
-    fetch_date <- df[1,1] #get date, always in first object in df
-    fetch_what <- paste(df[1,2],df[1,3]) # get what it is
-    isects <- lengths(st_intersects(z,df$geometry)) # vector of intersections
-    y[,ncol(y)+1] <- isects # después lo puedo colapsar como columna de atributos con pivot wider
-    colnames(y)[ncol(y)] <- paste(fetch_what,fetch_date) # rename w date
-    print(paste(i, "intersected data frames out of:", length(x)))
-  }
-  return(y)
-}
-
+# Importamos funcion que itera ----
+source("iterated_intersection.R")
 
 # Creamos bases individuales -----
-
+test <- data.frame(id = 1:length(colonias_cdmx$geometry))# La función necesita saber cuántas tiene
+colonias_cdmx <- st_transform(colonias_cdmx,st_crs(choque_sl_accidente[[1]]))
+colonias_cdmx <- colonias_cdmx %>% st_make_valid()
 # Intersectamos 
 choque_sl_accidente_final<- iterated_intersection(choque_sl_accidente,test,colonias_cdmx)
 choque_cl_accidente_final <- iterated_intersection(choque_cl_accidente,test,colonias_cdmx)
@@ -263,10 +273,12 @@ complete_choque_sl_accidente <- complete_choque_sl_accidente %>%
   mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
   mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
   mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
-  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
-  mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03") & dates_complete< as.Date("2023-01-30"),1,0)) %>% 
+  mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11") ,1,0)) %>% 
   select(dates_complete,CVE_COL,COLONIA,NOM_LOC,POBTOT,IM_2020, IMN_2020,
-         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 
 complete_choque_cl_accidente <- complete_choque_cl_accidente %>% 
@@ -274,10 +286,13 @@ complete_choque_cl_accidente <- complete_choque_cl_accidente %>%
   mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
   mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
   mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
-  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03") & dates_complete< as.Date("2023-01-30"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,COLONIA,NOM_LOC,POBTOT,IM_2020, IMN_2020,
-         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         incidente,incidencia,
+         cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 
 complete_atropellado_lesionado <- complete_atropellado_lesionado %>% 
@@ -285,10 +300,12 @@ complete_atropellado_lesionado <- complete_atropellado_lesionado %>%
   mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
   mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
   mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
-  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03") & dates_complete< as.Date("2023-01-30"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,COLONIA,NOM_LOC,POBTOT,IM_2020, IMN_2020,
-         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 
 complete_moto_accidente <- complete_moto_accidente %>% 
@@ -296,10 +313,12 @@ complete_moto_accidente <- complete_moto_accidente %>%
   mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
   mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
   mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
-  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03") & dates_complete< as.Date("2023-01-30"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,COLONIA,NOM_LOC,POBTOT,IM_2020, IMN_2020,
-         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
 
 complete_total <- complete_total %>% 
@@ -307,19 +326,20 @@ complete_total <- complete_total %>%
   mutate(inicio_cb2 = ifelse(dates_complete > as.Date("2021-08-08"),1,0)) %>% 
   mutate(inicio_te = ifelse(dates_complete > as.Date("2022-10-29"),1,0)) %>% 
   mutate(inicio_l9 = ifelse(dates_complete > as.Date("2021-01-30"),1,0)) %>% 
-  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03"),1,0)) %>% 
+  mutate(para_l12 = ifelse(dates_complete > as.Date("2021-05-03") & dates_complete< as.Date("2023-01-30"),1,0)) %>% 
   mutate(para_l1 = ifelse(dates_complete > as.Date("2022-07-11"),1,0)) %>% 
   select(dates_complete,CVE_COL,COLONIA,NOM_LOC,POBTOT,IM_2020, IMN_2020,
-         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,inicio_cb1,inicio_cb2,inicio_te,
+         incidente,incidencia,cb_1,cb_2,tr_e,tr_9,l_1,l_12,
+         cb_1b,cb_2b,tr_eb,tr_9b,l_1b,l_12b,
+         inicio_cb1,inicio_cb2,inicio_te,
          inicio_l9,para_l1,para_l12,geometry)
-
+print("...DONE...")
 
 # IM e IMN son LD, entonces sólo usar una, la que sea
 
 # LISTOOOO!!!!
 # complete_choque_sl_accidente %>% View()
 
-# 
 
 # Fechas ----
 fechas_importantes <- data.frame(evento = c("Inicia Cuarentena por Covid-19", "Inicia Cablebus L1", 

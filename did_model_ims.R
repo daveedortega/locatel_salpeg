@@ -1,17 +1,20 @@
 ## Trying for models w IMG CONAPO 2020 ----
-pacman::p_load(estimatr,haven,stargazer)
+pacman::p_load(estimatr,haven,stargazer,lfe,plm,lmtest)
 
 # CB1 ----
 # DID Incidentes Viales
-dd_1 <- complete_choque_sl_accidente %>% lm(incidencia ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020 ,.)
+
+dd_1 <- complete_choque_sl_accidente %>% lm(incidencia ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020,.)
 dd_2 <- complete_choque_cl_accidente %>% lm(incidencia ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020 ,.)
 dd_3 <- complete_atropellado_lesionado %>% lm(incidencia ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020 ,.)
 dd_4 <- complete_moto_accidente %>% lm(incidencia ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020,.)
 dd_5 <- complete_total %>% lm(incidencia ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020,.)
 # Tabla
-stargazer(dd_1,dd_2,dd_3,dd_4,dd_5, type = "text", digits = 2, covariate.labels = c("CB L1", "Start L1","2020 Population", "Margination Index 2020", "CB1 X Start"),
+stargazer(dd_1,dd_2,dd_3,dd_4,dd_5, type = "text", digits = 2,
+          covariate.labels = c("CB L1", "Start L1","2020 Population", "Margination Index 2020", "CB1 X Start"),
           dep.var.labels = "|1 = Choque Sin lesionados | 2 = Choque con Lesionados | 3  = Atropellado Lesionado | 4 = Accidente de Moto | 5 = Total Incidentes |", 
           title = "Cablebus L1 Effects on Incidentes Viales")
+
 # Carpetas de Investigacion 
 dd_1 <- complete_robos %>% lm(delitos ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020,.)
 dd_2 <- complete_asesinatos %>% lm(delitos ~ cb_1+inicio_cb1+cb_1*inicio_cb1 + POBTOT + IM_2020,.)
