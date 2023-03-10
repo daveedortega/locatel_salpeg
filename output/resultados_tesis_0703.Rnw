@@ -1,0 +1,181 @@
+\documentclass{article}
+\usepackage[landscape]{geometry} % required for landscape
+\usepackage{import} % importing tex files
+\usepackage{titlesec} % Subsubsection
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\section{Efectos Cablebús L1}
+
+\subsection{Incidentes Viales}
+
+%% CB L1 ----------
+%%load table from tex document
+% Choques sin lesionados CB L1 sin Buffer
+\import{./}{resultados/cbl1/choques_sl_sb_cbl1.tex}
+% Choches sin lesionados CB L1 con Buffer
+\import{./}{resultados/cbl1/choques_sl_cb_cbl1.tex}
+%% Choques con lesionados CB L1 sin Buffer
+\import{./}{resultados/cbl1/choques_cl_sb_cbl1.tex}
+%% Choques con lesionados CB L1 con Buffer
+\import{./}{resultados/cbl1/choques_cl_cb_cbl1.tex}
+%% Atropellados con lesionados CB L1 sin Buffer
+\import{./}{resultados/cbl1/atropellados_sb_cbl1.tex}
+%% Atropellados con lesionados CB L1 con Buffer
+\import{./}{resultados/cbl1/atropellados_cb_cbl1.tex}
+%% Accidentes_moto  CB L1 sin Buffer
+\import{./}{resultados/cbl1/moto_sb_cbl1.tex}
+%% Accidentes_moto  CB L1 con Buffer
+\import{./}{resultados/cbl1/moto_cb_cbl1.tex}
+%% Total Inviales  CB L1 sin Buffer
+\import{./}{resultados/cbl1/totinvi_sb_cbl1.tex}
+%% Total Inviales  CB L1 con Buffer
+\import{./}{resultados/cbl1/totinvi_cb_cbl1.tex}
+
+%% CB L2 ----------
+%%load table from tex document
+\section{Efectos Cablebús L1}
+
+\subsection{Incidentes Viales}
+% Choques sin lesionados CB L2 sin Buffer
+\import{./}{resultados/cbl2/choques_sl_sb_cbl2.tex}
+% Choches sin lesionados CB L2 con Buffer
+\import{./}{resultados/cbl2/choques_sl_cb_cbl2.tex}
+%% Choques con lesionados CB L2 sin Buffer
+\import{./}{resultados/cbl2/choques_cl_sb_cbl2.tex}
+%% Choques con lesionados CB L2 con Buffer
+\import{./}{resultados/cbl2/choques_cl_cb_cbl2.tex}
+%% Atropellados con lesionados CB L2 sin Buffer
+\import{./}{resultados/cbl2/atropellados_sb_cbl2.tex}
+%% Atropellados con lesionados CB L2 con Buffer
+\import{./}{resultados/cbl2/atropellados_cb_cbl2.tex}
+%% Accidentes_moto  CB L2 sin Buffer
+\import{./}{resultados/cbl2/moto_sb_cbl2.tex}
+%% Accidentes_moto  CB L2 con Buffer
+\import{./}{resultados/cbl2/moto_cb_cbl2.tex}
+%% Total Inviales  CB L2 sin Buffer
+\import{./}{resultados/cbl2/totinvi_sb_cbl2.tex}
+%% Total Inviales  CB L2 con Buffer
+\import{./}{resultados/cbl2/totinvi_cb_cbl2.tex}
+
+%% TR L9 ----------
+%%load table from tex document
+\section{Efectos Trolebús L9}
+
+\subsection{Incidentes Viales}
+% Choques sin lesionados CB L2 sin Buffer
+\import{./}{resultados/tr9/choques_sl_sb_trl9.tex}
+% Choches sin lesionados CB L2 con Buffer
+\import{./}{resultados/tr9/choques_sl_cb_trl9.tex}
+%% Choques con lesionados CB L2 sin Buffer
+\import{./}{resultados/tr9/choques_cl_sb_trl9.tex}
+%% Choques con lesionados CB L2 con Buffer
+\import{./}{resultados/tr9/choques_cl_cb_trl9.tex}
+%% Atropellados con lesionados CB L2 sin Buffer
+\import{./}{resultados/tr9/atropellados_sb_trl9.tex}
+%% Atropellados con lesionados CB L2 con Buffer
+\import{./}{resultados/tr9/atropellados_cb_trl9.tex}
+%% Accidentes_moto  CB L2 sin Buffer
+\import{./}{resultados/tr9/moto_sb_trl9.tex}
+%% Accidentes_moto  CB L2 con Buffer
+\import{./}{resultados/tr9/moto_cb_trl9.tex}
+%% Total Inviales  CB L2 sin Buffer
+\import{./}{resultados/tr9/totinvi_sb_trl9.tex}
+%% Total Inviales  CB L2 con Buffer
+\import{./}{resultados/tr9/totinvi_cb_trl9.tex}
+
+%% TR L9 ----------
+%%load table from tex document
+\section{Efectos Trolebús Elevado}
+
+\subsection{Incidentes Viales}
+% Choques sin lesionados CB L2 sin Buffer
+\import{./}{resultados/tre/choques_sl_sb_tre.tex}
+% Choches sin lesionados CB L2 con Buffer
+\import{./}{resultados/tre/choques_sl_cb_tre.tex}
+%% Choques con lesionados CB L2 sin Buffer
+\import{./}{resultados/tre/choques_cl_sb_tre.tex}
+%% Choques con lesionados CB L2 con Buffer
+\import{./}{resultados/tre/choques_cl_cb_tre.tex}
+%% Atropellados con lesionados CB L2 sin Buffer
+\import{./}{resultados/tre/atropellados_sb_tre.tex}
+%% Atropellados con lesionados CB L2 con Buffer
+\import{./}{resultados/tre/atropellados_cb_tre.tex}
+%% Accidentes_moto  CB L2 sin Buffer
+\import{./}{resultados/tre/moto_sb_tre.tex}
+%% Accidentes_moto  CB L2 con Buffer
+\import{./}{resultados/tre/moto_cb_tre.tex}
+%% Total Inviales  CB L2 sin Buffer
+\import{./}{resultados/tre/totinvi_sb_tre.tex}
+%% Total Inviales  CB L2 con Buffer
+\import{./}{resultados/tre/totinvi_cb_tre.tex}
+
+%% STC L1 ----------
+%%load table from tex document
+\section{Efectos STC Línea 1}
+
+\subsection{Incidentes Viales}
+% Choques sin lesionados CB L2 sin Buffer
+\import{./}{resultados/stc_l1/choques_sl_sb_stc_l1.tex}
+% Choches sin lesionados CB L2 con Buffer
+\import{./}{resultados/stc_l1/choques_sl_cb_stc_l1.tex}
+%% Choques con lesionados CB L2 sin Buffer
+\import{./}{resultados/stc_l1/choques_cl_sb_stc_l1.tex}
+%% Choques con lesionados CB L2 con Buffer
+\import{./}{resultados/stc_l1/choques_cl_cb_stc_l1.tex}
+%% Atropellados con lesionados CB L2 sin Buffer
+\import{./}{resultados/stc_l1/atropellados_sb_stc_l1.tex}
+%% Atropellados con lesionados CB L2 con Buffer
+\import{./}{resultados/stc_l1/atropellados_cb_stc_l1.tex}
+%% Accidentes_moto  CB L2 sin Buffer
+\import{./}{resultados/stc_l1/moto_sb_stc_l1.tex}
+%% Accidentes_moto  CB L2 con Buffer
+\import{./}{resultados/stc_l1/moto_cb_stc_l1.tex}
+%% Total Inviales  CB L2 sin Buffer
+\import{./}{resultados/stc_l1/totinvi_sb_stc_l1.tex}
+%% Total Inviales  CB L2 con Buffer
+\import{./}{resultados/stc_l1/totinvi_cb_stc_l1.tex}
+
+
+%% STC L12 ----------
+%%load table from tex document
+\section{Efectos STC Línea 12}
+
+\subsection{Incidentes Viales}
+% Choques sin lesionados CB L2 sin Buffer
+\import{./}{resultados/stc_l12/choques_sl_sb_stc_l12.tex}
+% Choches sin lesionados CB L2 con Buffer
+\import{./}{resultados/stc_l12/choques_sl_cb_stc_l12.tex}
+%% Choques con lesionados CB L2 sin Buffer
+\import{./}{resultados/stc_l12/choques_cl_sb_stc_l12.tex}
+%% Choques con lesionados CB L2 con Buffer
+\import{./}{resultados/stc_l12/choques_cl_cb_stc_l12.tex}
+%% Atropellados con lesionados CB L2 sin Buffer
+\import{./}{resultados/stc_l12/atropellados_sb_stc_l12.tex}
+%% Atropellados con lesionados CB L2 con Buffer
+\import{./}{resultados/stc_l12/atropellados_cb_stc_l12.tex}
+%% Accidentes_moto  CB L2 sin Buffer
+\import{./}{resultados/stc_l12/moto_sb_stc_l12.tex}
+%% Accidentes_moto  CB L2 con Buffer
+\import{./}{resultados/stc_l12/moto_cb_stc_l12.tex}
+%% Total Inviales  CB L2 sin Buffer
+\import{./}{resultados/stc_l12/totinvi_sb_stc_l12.tex}
+%% Total Inviales  CB L2 con Buffer
+\import{./}{resultados/stc_l12/totinvi_cb_stc_l12.tex}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
